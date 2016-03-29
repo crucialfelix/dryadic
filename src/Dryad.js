@@ -40,6 +40,9 @@ export default class Dryad {
   get isDryad() {
     return true;
   }
+  static isDryadSubclass() {
+    return true;
+  }
 
   clone() {
     let dup = new this.constructor();

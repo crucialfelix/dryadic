@@ -2,6 +2,7 @@ import _ from 'underscore';
 import DryadTree from './DryadTree';
 import CommandMiddleware from './CommandMiddleware';
 import {Promise} from 'bluebird';
+import hyperscript from './hyperscript';
 
 if (process) {
   process.on('unhandledRejection', function(reason) {
@@ -19,16 +20,36 @@ if (process) {
 
 export default class DryadPlayer {
 
-  constructor(rootDryad) {
-    if (rootDryad) {
-      this.setRoot(rootDryad);
-    }
+  constructor(rootDryad, layers) {
     this.middleware = new CommandMiddleware();
     this.classes = {};
+    if (layers) {
+      layers.forEach((layer) => {
+        this.use(layer);
+      });
+    }
+    this.setRoot(rootDryad);
   }
 
-  setRoot(rootDryad) {
-    this.tree = new DryadTree(rootDryad, _.bind(this.getClass, this));
+  /**
+   * Set a new tree.
+   *
+   * Behavior while already playing is not yet defined.
+   *
+   * @param {Dryad} dryad
+   */
+  setRoot(dryad) {
+    if (dryad) {
+      let classLookup = _.bind(this.getClass, this);
+      this.tree = new DryadTree(this.h(dryad), classLookup);
+    } else {
+      this.tree = null;
+    }
+  }
+
+  h(hgraph) {
+    let classLookup = _.bind(this.getClass, this);
+    return hyperscript(hgraph, classLookup);
   }
 
   /**
@@ -42,14 +63,30 @@ export default class DryadPlayer {
     return this;
   }
 
+  /**
+   * Register a Dryad class so it can be located when used in hyperscript.
+   * Also needed if a class uses requireParent()
+   *
+   * @param {Dryad} dryadClass
+   */
   addClass(dryadClass) {
-    this.classes[dryadClass.name] = dryadClass;
+    this.classes[dryadClass.name.toLowerCase()] = dryadClass;
   }
 
+  /**
+   * Lookup Dryad class by name.
+   *
+   * Used by hyperscript and requireParent, this requires
+   * that layers and their classes were registered and any custom
+   * classes that you right are registered. If you aren't using
+   * hyperscript then you don't need to register your class.
+   * @param {String} className - case-insensitive
+   * @returns {Dryad}
+   */
   getClass(className) {
-    let dryadClass = this.classes[className];
+    let dryadClass = this.classes[className.toLowerCase()];
     if (!dryadClass) {
-      throw new Error('Dryad class not found: ' + className);
+      throw new Error(`Dryad class not found: '${className}' in classes: ${Object.keys(this.classes)}`);
     }
     return dryadClass;
   }
