@@ -3,6 +3,8 @@ jest.dontMock('../Dryad');
 jest.dontMock('../DryadTree');
 jest.dontMock('../DryadPlayer');
 jest.dontMock('../CommandMiddleware');
+jest.dontMock('../hyperscript');
+
 var Dryad = require('../Dryad').default;
 var DryadTree = require('../DryadTree').default;
 var DryadPlayer = require('../DryadPlayer').default;
@@ -95,15 +97,16 @@ describe('DryadTree', function() {
    * by name with the DryadPlayer / app.
    */
   describe('required parent', function() {
-    var app;
 
-    beforeEach(() => {
-      app = new DryadPlayer();
+    function makeApp() {
+      let app = new DryadPlayer();
       app.addClass(Child);
       app.addClass(Parent);
-    });
+      return app;
+    }
 
-    it('should wrap a dryad in a required parent', function() {
+    it('Child should be wrapped in required Parent', function() {
+      let app = makeApp();
       var root = new Child({}, [new TypeOne()]);
       app.setRoot(root);
       var tree = app.tree;
@@ -114,6 +117,7 @@ describe('DryadTree', function() {
     });
 
     it('should not wrap a dryad in a required parent if already present in branch', function() {
+      let app = makeApp();
       var root = new Parent({}, [new Child({}, [new TypeOne()])]);
       app.setRoot(root);
       var tree = app.tree;

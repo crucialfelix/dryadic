@@ -1,6 +1,7 @@
 
 jest.dontMock('../Dryad');
 jest.dontMock('../DryadTree');
+jest.dontMock('../hyperscript');
 jest.dontMock('../DryadPlayer');
 jest.dontMock('../CommandMiddleware');
 
@@ -53,6 +54,10 @@ describe('DryadPlayer', function() {
 
     it('should construct', function() {
       expect(player).toBeTruthy();
+    });
+
+    it('should have registered TypeOne', function() {
+      expect(player.classes['typeone']).toBeTruthy();
     });
 
     pit('should play', function() {
