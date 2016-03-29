@@ -44,8 +44,6 @@ describe('DryadTree', function() {
     expect(tree.tree.children.length).toBe(1);
     expect(tree.tree.children[0].id).toBe('0.0');
     expect(tree.tree.children[0].type).toBe('TypeTwo');
-
-    // console.log(tree.tree);
   });
 
   it('should walk', function() {
@@ -89,7 +87,6 @@ describe('DryadTree', function() {
     expect(Object.keys(tree.dryads).length).toBe(3);
     expect(tree.tree.type).toBe('TypeOne');
     expect(tree.tree.children.length).toBe(1);
-    // console.log(tree.tree);
     expect(tree.tree.children[0].type).toBe('HasSubgraphWithSelf');
   });
 
@@ -120,7 +117,6 @@ describe('DryadTree', function() {
       var root = new Parent({}, [new Child({}, [new TypeOne()])]);
       app.setRoot(root);
       var tree = app.tree;
-      // console.log(tree.tree);
       let child = tree.tree.children[0];
       expect(child.type).toBe('Child');
       expect(child.children[0].type).toBe('TypeOne');
@@ -153,7 +149,6 @@ describe('DryadTree', function() {
         var tree = app.tree;
         var rootId = tree.tree.id;
         var childId = tree.tree.children[0].id;
-        // console.log(tree.contexts);
 
         // root context should have one two = 'value'
         expect(tree.contexts[rootId].one).toBe(value);

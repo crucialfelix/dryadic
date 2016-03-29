@@ -31,7 +31,6 @@ class Child extends Dryad {}
 class PrepareWithFunction extends Dryad {
   prepareForAdd() {
     return (/*context*/) => {
-      // console.log('context', context);
       return {
         one: 1,
         two: 2
@@ -96,7 +95,6 @@ describe('DryadPlayer', function() {
 
 
   // it('on prepare should update context of parent so child sees it', function() {
-  //   console.log(player.tree.tree);
   //   return player.play().then(() => {
   //     let rootId = player.tree.tree.id;
   //     let childId = player.tree.tree.children[0].id;

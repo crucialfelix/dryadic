@@ -132,20 +132,6 @@ export default class DryadTree {
       }
     }
 
-    // if (memo.skipSubgraphOf === dryad) {
-    //   delete memo.skipSubgraphOf;
-    // } else {
-    //   let subgraph = dryad.subgraph();
-    //   if (subgraph) {
-    //     // can create context now and save reference to this subgraph tree
-    //     // give subgraph a special parentId that shows it below myself
-    //     // parentId = dryad.id + '%'
-    //     memo.skipSubgraphOf = dryad;
-    //     // if its an array then wrap in Brethren
-    //     return this._makeTree(subgraph, parentId, childIndex, memo);
-    //   }
-    // }
-
     let dryadType = dryad.constructor.name;
     memo.seenTypes.push(dryadType);
 

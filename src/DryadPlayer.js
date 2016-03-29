@@ -52,7 +52,7 @@ export default class DryadPlayer {
   }
 
   /**
-   * Add a layer of functionality in the form of Dryad classes and command middleware
+   * Add a layer of functionality by registering Dryad classes and command middleware.
    *
    * @param {Object} layer - .classes is a list of Dryad classes, .middleware is a list of middleware functions
    */
@@ -91,8 +91,7 @@ export default class DryadPlayer {
   }
 
   /**
-   *
-   * @returns {Promise} - that resolves to this
+   * @returns {Promise} - that resolves to `this`
    */
   play(dryad) {
     if (dryad) {
@@ -105,6 +104,9 @@ export default class DryadPlayer {
       .then(() => this);
   }
 
+  /**
+   * @returns {Promise} - that resolves to `this`
+   */
   stop() {
     let removeRoot = this._collect('remove');
     return this._call(removeRoot).then(() => this);
@@ -128,7 +130,6 @@ export default class DryadPlayer {
   }
 
   _call(commandRoot) {
-    // console.log('call commandRoot', commandRoot.children[0]);
     return this.middleware.call(commandRoot);
   }
 }

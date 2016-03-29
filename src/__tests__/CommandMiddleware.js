@@ -52,7 +52,6 @@ describe('CommandMiddleware', function() {
     cm.use([middleware]);
 
     return cm.call(rc).then((returned) => {
-      // console.log('returned', returned);
       // [[0, 1, 2, 3]]
       // because you are returned a list for each middlware installed
       expect(returned[0].length).toBe(4);
