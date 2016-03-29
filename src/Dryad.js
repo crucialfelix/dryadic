@@ -15,8 +15,8 @@ import * as _  from 'underscore';
 export default class Dryad {
 
   constructor(properties={}, children=[]) {
-    this.properties = _.assign({}, this.defaultProperties(), properties);
-    this.children = children;
+    this.properties = _.assign({}, this.defaultProperties(), properties || {});
+    this.children = children || [];
     this.tag = null;
   }
 

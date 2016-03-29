@@ -6,8 +6,7 @@ import hyperscript from './hyperscript';
 
 if (process) {
   process.on('unhandledRejection', function(reason) {
-    // console.error(reason);
-    console.error(reason.stack);
+    console.error('Unhandled Rejection:', reason, reason && reason.stack);
   });
 } else {
   Promise.onPossiblyUnhandledRejection((error) => {

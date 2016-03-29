@@ -55,6 +55,10 @@ export default class DryadTree {
   }
 
   _makeTree(dryad, parentId, childIndex=0, memo={}) {
+    if (!dryad.isDryad) {
+      console.error('Not a dryad', dryad);
+      throw new Error('Not a Dryad:' + dryad);
+    }
     // Copy seenTypes, pass it to your children
     // Each branch sees a different descendent list
     memo.seenTypes = memo.seenTypes ? memo.seenTypes.slice() : [];
@@ -93,9 +97,9 @@ export default class DryadTree {
         // objects in subgraph will store references to themselves
         // in this dryad's context because of this memo flag:
         subMemo.subgraphOfId = id;
-        // TODO: if its an array then wrap in Brethren
-        if (_.isArray(subgraph)) {
-          console.log('TODO: isArray', subgraph);
+        // if its an array then should have been supplied in a Branch
+        if (Array.isArray(subgraph)) {
+          throw new Error('Dryad subgraph should return a single Dryad with children.' + dr + subgraph);
         }
         return this._makeTree(subgraph, id, 'subgraph', subMemo);
       }
