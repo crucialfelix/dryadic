@@ -113,7 +113,11 @@ export default class DryadPlayer {
       this.setRoot(dryad);
     }
     let prepTree = this._collectCommands('prepareForAdd');
-    let addTree = this._collectCommands('add');
+    let addTree = this._collectCommands('add', {
+      callCommand: (nodeId, commandObject) => {
+        this._callCommand(nodeId, commandObject);
+      }
+    });
     return this._callPrepare(prepTree)
       .then(() => this._call(addTree))
       .then(() => this);
@@ -127,8 +131,8 @@ export default class DryadPlayer {
     return this._call(removeTree).then(() => this);
   }
 
-  _collectCommands(commandName) {
-    return this.tree.collectCommands(commandName, this.tree.tree);
+  _collectCommands(commandName, extraContext) {
+    return this.tree.collectCommands(commandName, this.tree.tree, extraContext);
   }
 
   /**
@@ -159,6 +163,21 @@ export default class DryadPlayer {
    */
   _call(commandTree) {
     return this.middleware.call(commandTree);
+  }
+
+  /**
+   * Execute a single command object for a single node using middleware
+   * outside the prepareForAdd/add/remove full tree command execution routine.
+   *
+   * This is added to the top level context as:
+   * context.callCommand({ command object })
+   *
+   * Its for commands that need to be executed during runtime
+   * in response to events, streams etc.
+   * eg. spawning synths from an incoming stream of data.
+   */
+  _callCommand(nodeId, command) {
+    return this._call(this.tree.makeCommandTree(nodeId, command));
   }
 }
 

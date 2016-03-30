@@ -1,12 +1,15 @@
 
-jest.dontMock('../Dryad');
-jest.dontMock('../DryadTree');
-jest.dontMock('../hyperscript');
 jest.dontMock('../DryadPlayer');
+jest.dontMock('../DryadTree');
+jest.dontMock('../Dryad');
+jest.dontMock('../hyperscript');
 jest.dontMock('../CommandMiddleware');
+jest.dontMock('../run');
+jest.dontMock('../layer');
 
 var Dryad = require('../Dryad').default;
 var DryadPlayer = require('../DryadPlayer').default;
+var layer = require('../layer').default;
 
 class TypeOne extends Dryad {
 
@@ -98,6 +101,38 @@ describe('DryadPlayer', function() {
     });
   });
 
+  describe('callCommand', function() {
+
+    let ran = false;
+
+    class CallsRuntimeCommand extends Dryad {
+      add() {
+        return {
+          run: (context) => {
+            context.callCommand(context.id, {
+              // context === innerContext
+              run: (innerContext) => {
+                // should execute this
+                if (context.id !== innerContext.id) {
+                  console.error('context', context, innerContext);
+                  throw new Error('context and innerContext id do not match');
+                }
+                ran = true;
+              }
+            });
+          }
+        };
+      }
+    }
+
+    pit('should execute a command object via context.callCommand', function() {
+      let root = new CallsRuntimeCommand();
+      let player = new DryadPlayer(root, [layer]);
+      return player.play().then(() => {
+        expect(ran).toBe(true);
+      });
+    });
+  });
 
   // it('on prepare should update context of parent so child sees it', function() {
   //   return player.play().then(() => {

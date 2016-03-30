@@ -4,10 +4,14 @@ jest.dontMock('../DryadTree');
 jest.dontMock('../DryadPlayer');
 jest.dontMock('../CommandMiddleware');
 jest.dontMock('../hyperscript');
+jest.dontMock('../run');
+jest.dontMock('../layer');
 
 var Dryad = require('../Dryad').default;
 var DryadTree = require('../DryadTree').default;
 var DryadPlayer = require('../DryadPlayer').default;
+var layer = require('../layer').default;
+
 
 class TypeOne extends Dryad {}
 class TypeTwo extends Dryad {}
@@ -132,14 +136,14 @@ describe('DryadTree', function() {
 
     class ParentWithPrepareFn extends Dryad {
       prepareForAdd() {
-        return (context) => {
-          if (!context) {
-            throw new Error('no contex supplied to prepareForAdd inner function');
-          }
-          return {
-            one: value,
-            two: value
-          };
+        return {
+          one: (context) => {
+            if (!context) {
+              throw new Error('no contex supplied to prepareForAdd inner function');
+            }
+            return value;
+          },
+          two: value
         };
       }
     }
@@ -164,4 +168,43 @@ describe('DryadTree', function() {
     });
   });
 
+  describe('collectCommands', function() {
+
+    let value = 'value';
+
+    class Adds extends Dryad {
+      add() {
+        return {
+          one: () => value
+        };
+      }
+    }
+
+    it('should collect add commands with extra context', function() {
+      let root = new Adds();
+      let app = new DryadPlayer(root);
+      let callCommand = 'callCommand';
+      let ctree = app._collectCommands('add', {callCommand: callCommand});
+      expect(ctree.context.callCommand).toBe(callCommand);
+    });
+  });
+
+  describe('makeCommandTree', function() {
+    pit('should make a command tree given a single command', function() {
+      let root = new Dryad();
+      let app = new DryadPlayer(root, [layer]);
+      let rootId = app.tree.tree.id;
+      let ran = false;
+      let commands = {
+        run: () => ran = true
+      };
+      let ctree = app.tree.makeCommandTree(rootId, commands);
+      expect(ctree.commands).toBe(commands);
+      expect(app.middleware.middlewares.length).toBeTruthy();
+
+      return app._call(ctree).then(() => {
+        expect(ran).toBe(true);
+      });
+    });
+  });
 });

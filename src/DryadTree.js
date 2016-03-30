@@ -52,15 +52,34 @@ export default class DryadTree {
    * @param {Dryad} node
    * @returns {Object}
    */
-  collectCommands(methodName, node) {
+  collectCommands(methodName, node, extraContext) {
     let dryad = this.dryads[node.id];
     let context = this.contexts[node.id];
     let commands = dryad[methodName](context);
+    if (extraContext) {
+      context = _.assign({}, context, extraContext);
+    }
     return {
       commands: commands,
       context: context,
       id: node.id,
       children: node.children.map((child) => this.collectCommands(methodName, child))
+    };
+  }
+
+  /**
+   * Construct a command tree for a single commandObject to be executed
+   * with a single node's context.
+   *
+   * This is for runtime execution of commands,
+   * called from streams and async processes initiated during Dryad's .add()
+   */
+  makeCommandTree(nodeId, command) {
+    return {
+      commands: command,
+      context: this.contexts[nodeId],
+      id: nodeId,
+      children: []
     };
   }
 
