@@ -1,6 +1,9 @@
 import * as _  from 'underscore';
 
 
+/**
+ * Executes command trees using middlewares.
+ */
 export default class CommandMiddleware {
 
   constructor(middlewares=[]) {

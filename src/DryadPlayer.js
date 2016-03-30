@@ -16,7 +16,16 @@ if (process) {
 }
 
 
-
+/**
+ * Manages play/stop/update for a Dryad tree.
+ *
+ * A Dryad has no state or functionality until it is played
+ * by a DryadPlayer. A Dryad can be played more than once at
+ * the same time by creating more DryadPlayers.
+ *
+ * The DryadPlayer also holds the layers and command middleware
+ * which execute the functionality that the Dryads specify.
+ */
 export default class DryadPlayer {
 
   constructor(rootDryad, layers) {
@@ -46,6 +55,12 @@ export default class DryadPlayer {
     }
   }
 
+  /**
+   * Convert hyperscript graph to Dryad objects with registered classes
+   *
+   * @param {Object} hgraph - JSON style object
+   * @returns {Dryad}
+   */
   h(hgraph) {
     let classLookup = _.bind(this.getClass, this);
     return hyperscript(hgraph, classLookup);
@@ -116,6 +131,14 @@ export default class DryadPlayer {
     return this.tree.collectCommands(commandName, this.tree.tree);
   }
 
+  /**
+   * Execute a prepareForAdd tree of command objects.
+   *
+   * Values of the command objects are functions may return Promises.
+   *
+   * @param {Object} prepTree - id, commands, context, children
+   * @returns {Promise} - resolves when all Promises in the tree have resolved
+   */
   _callPrepare(prepTree) {
     var commands = prepTree.commands || {};
     if (_.isFunction(commands)) {
@@ -129,6 +152,11 @@ export default class DryadPlayer {
     });
   }
 
+  /**
+   * Execute a command tree using middleware.
+   *
+   * @returns {Promise}
+   */
   _call(commandTree) {
     return this.middleware.call(commandTree);
   }

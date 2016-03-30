@@ -1,8 +1,17 @@
 import * as _  from 'underscore';
 
 
+/**
+ * Manages the tree structure, contexts for nodes,
+ * utilities to walk the tree, collect commands and
+ * call command middleware.
+ */
 export default class DryadTree {
 
+  /**
+   * @param {Dryad} rootDryad
+   * @param {Function} getClass - lookup function
+   */
   constructor(rootDryad, getClass) {
     this.root = rootDryad;
     this.dryads = {};
@@ -14,8 +23,15 @@ export default class DryadTree {
   /**
    * Depth first traversal of the Dryad tree
    *
-   * @param {Object} node - data object
+   * The function is given arguments:
+   *   node {id type children}
+   *   Dryad
+   *   context
+   *   memo
+   *
    * @param {Function} fn - called with (dryad, context, node)
+   * @param {Object} node - data object
+   * @param {Object} memo - for usage during recursion
    */
   walk(fn, node, memo) {
     if (!node) {
@@ -28,6 +44,14 @@ export default class DryadTree {
     return memo;
   }
 
+  /**
+   * Collect a tree of command objects from each node for a given method.
+   * eg. 'add' 'remove' 'prepareForAdd'
+   *
+   * @param {String} methodName
+   * @param {Dryad} node
+   * @returns {Object}
+   */
   collectCommands(methodName, node) {
     let dryad = this.dryads[node.id];
     let context = this.contexts[node.id];
@@ -40,10 +64,23 @@ export default class DryadTree {
     };
   }
 
+  /**
+   * Update the context for a node.
+   *
+   * @param {String} dryadId
+   * @param {Object} update
+   */
   updateContext(dryadId, update) {
     this.contexts[dryadId] = _.assign(this.contexts[dryadId], update);
   }
 
+  /**
+   * Create and return initial context for a Dryad.
+   *
+   * Each context inherits from it's parent's context.
+   *
+   * @returns {Object}
+   */
   _createContext(dryad, dryadId, parentId) {
     let cc = {id: dryadId};
     if (parentId) {
@@ -54,6 +91,26 @@ export default class DryadTree {
     return cc;
   }
 
+  /**
+   * Given a Dryad (possibily with children), construct a tree of Objects
+   * {id type children}
+   *
+   * Dryad classes may use requireParent() and subgraph() to replace themselves
+   * with a different graph. So this tree is not a direct representation of the input
+   * graph, but may be expanded through the use of requireParent() and subgraph()
+   *
+   * Generates ids for each Dryad
+   * Stores each by its id
+   * Creates context for each
+   *
+   * This method calls itself recursively for children.
+   *
+   * @param {Dryad} dryad
+   * @param {String} parentId
+   * @param {Integer} childIndex
+   * @param {Object} memo - for internal usage during recursion
+   * @returns {Object}
+   */
   _makeTree(dryad, parentId, childIndex=0, memo={}) {
     if (!dryad.isDryad) {
       console.error('Not a dryad', dryad);
@@ -148,6 +205,20 @@ export default class DryadTree {
     };
   }
 
+  /**
+   * private.
+   *
+   * Calls the appropriate method on the dryad.children
+   * Currently it can only be an Array and all the children
+   * must be a Dryad.
+   *
+   * It will be used for including the properties in the tree
+   * for use in diffing. If there are any Dryad in the properties
+   * then the Dryad class is currently responsible for returning those
+   * in subgraph() so they get launched.
+   *
+   * @param {Dryad|Array|Object|String|Number|undefined} obj
+   */
   _convertObject(obj, parentId, childIndex=0, memo={}) {
     if (obj.isDryad) {
       return this._makeTree(obj, parentId, childIndex, memo);
