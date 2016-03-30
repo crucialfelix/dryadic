@@ -40,8 +40,8 @@ export default class DryadTree {
     };
   }
 
-  updateContext(id, update) {
-    this.contexts[id] = _.assign(this.contexts[id], update);
+  updateContext(dryadId, update) {
+    this.contexts[dryadId] = _.assign(this.contexts[dryadId], update);
   }
 
   _createContext(dryad, dryadId, parentId) {

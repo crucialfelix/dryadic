@@ -97,10 +97,10 @@ export default class DryadPlayer {
     if (dryad) {
       this.setRoot(dryad);
     }
-    let prepRoot = this._collect('prepareForAdd');
-    let addRoot = this._collect('add');
-    return this._callPrepare(prepRoot)
-      .then(() => this._call(addRoot))
+    let prepTree = this._collectCommands('prepareForAdd');
+    let addTree = this._collectCommands('add');
+    return this._callPrepare(prepTree)
+      .then(() => this._call(addTree))
       .then(() => this);
   }
 
@@ -108,29 +108,29 @@ export default class DryadPlayer {
    * @returns {Promise} - that resolves to `this`
    */
   stop() {
-    let removeRoot = this._collect('remove');
-    return this._call(removeRoot).then(() => this);
+    let removeTree = this._collectCommands('remove');
+    return this._call(removeTree).then(() => this);
   }
 
-  _collect(commandName) {
+  _collectCommands(commandName) {
     return this.tree.collectCommands(commandName, this.tree.tree);
   }
 
-  _callPrepare(prepRoot) {
-    var commands = prepRoot.commands || {};
+  _callPrepare(prepTree) {
+    var commands = prepTree.commands || {};
     if (_.isFunction(commands)) {
-      commands = commands(prepRoot.context);
+      commands = commands(prepTree.context);
     }
-    return callAndResolveValues(commands, prepRoot.context).then((resolved) => {
+    return callAndResolveValues(commands, prepTree.context).then((resolved) => {
       // save resolved to that node's context
-      this.tree.updateContext(prepRoot.id, resolved);
-      let childPromises = prepRoot.children.map((childPrep) => this._callPrepare(childPrep));
+      this.tree.updateContext(prepTree.id, resolved);
+      let childPromises = prepTree.children.map((childPrep) => this._callPrepare(childPrep));
       return Promise.all(childPromises);
     });
   }
 
-  _call(commandRoot) {
-    return this.middleware.call(commandRoot);
+  _call(commandTree) {
+    return this.middleware.call(commandTree);
   }
 }
 
