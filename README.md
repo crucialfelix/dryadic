@@ -3,6 +3,8 @@ dryadic
 
 [![npm version](https://badge.fury.io/js/dryadic.svg)](http://badge.fury.io/js/dryadic) [![Build Status](https://travis-ci.org/crucialfelix/dryadic.svg?branch=master)](https://travis-ci.org/crucialfelix/dryadic) [![Dependency Status](https://david-dm.org/crucialfelix/dryadic.svg)](https://david-dm.org/crucialfelix/dryadic) [![devDependency Status](https://david-dm.org/crucialfelix/dryadic/dev-status.svg)](https://david-dm.org/crucialfelix/dryadic#info=devDependencies)
 
+ALPHA, work in progress
+
 Dryadic is a micro-framework for managing trees of components across disparate rendering contexts.
 
 >> A dryad (/ˈdraɪ.æd/; Greek: Δρυάδες, sing.: Δρυάς) is a tree nymph, or female tree spirit, in Greek mythology

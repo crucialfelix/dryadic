@@ -1,6 +1,9 @@
 import * as _  from 'underscore';
 
 
+/**
+ * Executes command trees using registered middleware.
+ */
 export default class CommandMiddleware {
 
   constructor(middlewares=[]) {
@@ -29,10 +32,12 @@ export default class CommandMiddleware {
   }
 
   /**
-   * Given a command object return a flat list the commands and childrens' command objects
+   * Given a command object return a flat list of the commands and the childrens' command objects
    */
   _flatten(node) {
-    return [new Command(node.commands, node.context)].concat(_.flatten(node.children.map((n) => this._flatten(n)), true));
+    return [
+      new Command(node.commands, node.context)
+    ].concat(_.flatten(node.children.map((n) => this._flatten(n)), true));
   }
 }
 

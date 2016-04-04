@@ -3,10 +3,13 @@
 import Immutable from 'immutable';
 
 /**
- * A store that holds a state tree.
+ * A store that holds the state tree.
  *
  * Holds an Immutable.Map and offers functions to mutate sub-states in that tree,
  * and stores the new state.
+ *
+ * TODO: this is used by supercollider.js for it's Server storage
+ * but it isn't actually used in dryadic anymore.
  */
 export default class Store {
 

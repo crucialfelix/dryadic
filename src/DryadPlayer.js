@@ -16,7 +16,16 @@ if (process) {
 }
 
 
-
+/**
+ * Manages play/stop/update for a Dryad tree.
+ *
+ * A Dryad has no state or functionality until it is played
+ * by a DryadPlayer. A Dryad can be played more than once at
+ * the same time by creating more DryadPlayers.
+ *
+ * The DryadPlayer also holds the layers and command middleware
+ * which execute the functionality that the Dryads specify.
+ */
 export default class DryadPlayer {
 
   constructor(rootDryad, layers) {
@@ -46,6 +55,12 @@ export default class DryadPlayer {
     }
   }
 
+  /**
+   * Convert hyperscript graph to Dryad objects with registered classes
+   *
+   * @param {Object} hgraph - JSON style object
+   * @returns {Dryad}
+   */
   h(hgraph) {
     let classLookup = _.bind(this.getClass, this);
     return hyperscript(hgraph, classLookup);
@@ -97,10 +112,10 @@ export default class DryadPlayer {
     if (dryad) {
       this.setRoot(dryad);
     }
-    let prepRoot = this._collect('prepareForAdd');
-    let addRoot = this._collect('add');
-    return this._callPrepare(prepRoot)
-      .then(() => this._call(addRoot))
+    let prepTree = this._collectCommands('prepareForAdd');
+    let addTree = this._collectCommands('add');
+    return this._callPrepare(prepTree)
+      .then(() => this._call(addTree))
       .then(() => this);
   }
 
@@ -108,29 +123,65 @@ export default class DryadPlayer {
    * @returns {Promise} - that resolves to `this`
    */
   stop() {
-    let removeRoot = this._collect('remove');
-    return this._call(removeRoot).then(() => this);
+    let removeTree = this._collectCommands('remove');
+    return this._call(removeTree).then(() => this);
   }
 
-  _collect(commandName) {
-    return this.tree.collectCommands(commandName, this.tree.tree);
+  _collectCommands(commandName) {
+    return this.tree.collectCommands(commandName, this.tree.tree, this);
   }
 
-  _callPrepare(prepRoot) {
-    var commands = prepRoot.commands || {};
+  /**
+   * Execute a prepareForAdd tree of command objects.
+   *
+   * Values of the command objects are functions may return Promises.
+   *
+   * @param {Object} prepTree - id, commands, context, children
+   * @returns {Promise} - resolves when all Promises in the tree have resolved
+   */
+  _callPrepare(prepTree) {
+    var commands = prepTree.commands || {};
     if (_.isFunction(commands)) {
-      commands = commands(prepRoot.context);
+      commands = commands(prepTree.context);
     }
-    return callAndResolveValues(commands, prepRoot.context).then((resolved) => {
+    return callAndResolveValues(commands, prepTree.context).then((resolved) => {
       // save resolved to that node's context
-      this.tree.updateContext(prepRoot.id, resolved);
-      let childPromises = prepRoot.children.map((childPrep) => this._callPrepare(childPrep));
+      this.tree.updateContext(prepTree.id, resolved);
+      let childPromises = prepTree.children.map((childPrep) => this._callPrepare(childPrep));
       return Promise.all(childPromises);
     });
   }
 
-  _call(commandRoot) {
-    return this.middleware.call(commandRoot);
+  /**
+   * Execute a command tree using middleware.
+   *
+   * @returns {Promise}
+   */
+  _call(commandTree) {
+    return this.middleware.call(commandTree);
+  }
+
+  /**
+   * Execute a single command object for a single node using middleware
+   * outside the prepareForAdd/add/remove full tree command execution routine.
+   *
+   * This can be called out of band from a Dryad's add/remove method
+   *
+   * Its for commands that need to be executed during runtime
+   * in response to events, streams etc.
+   * eg. spawning synths from an incoming stream of data.
+   */
+  callCommand(nodeId, command) {
+    return this._call(this.tree.makeCommandTree(nodeId, command));
+  }
+
+  /**
+   * Allow a Dryad to update its own context.
+   *
+   * Contexts are immutable - this returns a new context object.
+   */
+  updateContext(context, update) {
+    return this.tree.updateContext(context.id, update);
   }
 }
 
