@@ -168,26 +168,26 @@ describe('DryadTree', function() {
     });
   });
 
-  describe('collectCommands', function() {
-
-    let value = 'value';
-
-    class Adds extends Dryad {
-      add() {
-        return {
-          one: () => value
-        };
-      }
-    }
-
-    it('should collect add commands with extra context', function() {
-      let root = new Adds();
-      let app = new DryadPlayer(root);
-      let callCommand = 'callCommand';
-      let ctree = app._collectCommands('add', {callCommand: callCommand});
-      expect(ctree.context.callCommand).toBe(callCommand);
-    });
-  });
+  // describe('collectCommands', function() {
+  //
+  //   let value = 'value';
+  //
+  //   class Adds extends Dryad {
+  //     add() {
+  //       return {
+  //         one: () => value
+  //       };
+  //     }
+  //   }
+  //
+  //   it('should collect add commands with extra context', function() {
+  //     let root = new Adds();
+  //     let app = new DryadPlayer(root);
+  //     let callCommand = 'callCommand';
+  //     let ctree = app._collectCommands('add', {callCommand: callCommand});
+  //     expect(ctree.context.callCommand).toBe(callCommand);
+  //   });
+  // });
 
   describe('makeCommandTree', function() {
     pit('should make a command tree given a single command', function() {

@@ -50,7 +50,7 @@ export default class Dryad {
    * Middleware supplied by layers will match command keys and will be passed the value.
    * Value is either an object that the middleware uses to do whatever it does (launch things, send messages) or is a function that take context and returns the object.
    */
-  prepareForAdd() {
+  prepareForAdd(/*player*/) {
     return {};
   }
 
@@ -64,7 +64,7 @@ export default class Dryad {
    *
    * Command middleware for add may return Promises which resolve on success; ie. when the thing is successfully booted, running etc.
    */
-  add() {
+  add(/*player*/) {
     return {};
   }
 
@@ -78,7 +78,7 @@ export default class Dryad {
    *
    * Command middleware for run may return Promises which resolve on success; ie. when the thing is successfully stopped, remove etc.
    */
-  remove() {
+  remove(/*player*/) {
     return {};
   }
 

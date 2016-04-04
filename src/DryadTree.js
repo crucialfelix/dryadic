@@ -52,18 +52,15 @@ export default class DryadTree {
    * @param {Dryad} node
    * @returns {Object}
    */
-  collectCommands(methodName, node, extraContext) {
+  collectCommands(methodName, node, player) {
     let dryad = this.dryads[node.id];
     let context = this.contexts[node.id];
-    let commands = dryad[methodName](context);
-    if (extraContext) {
-      context = _.assign({}, context, extraContext);
-    }
+    let commands = dryad[methodName](player);
     return {
       commands: commands,
       context: context,
       id: node.id,
-      children: node.children.map((child) => this.collectCommands(methodName, child))
+      children: node.children.map((child) => this.collectCommands(methodName, child, player))
     };
   }
 
@@ -90,7 +87,7 @@ export default class DryadTree {
    * @param {Object} update
    */
   updateContext(dryadId, update) {
-    this.contexts[dryadId] = _.assign(this.contexts[dryadId], update);
+    return this.contexts[dryadId] = _.assign(this.contexts[dryadId], update);
   }
 
   /**

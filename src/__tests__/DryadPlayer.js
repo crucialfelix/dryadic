@@ -106,10 +106,10 @@ describe('DryadPlayer', function() {
     let ran = false;
 
     class CallsRuntimeCommand extends Dryad {
-      add() {
+      add(player) {
         return {
           run: (context) => {
-            context.callCommand(context.id, {
+            player.callCommand(context.id, {
               // context === innerContext
               run: (innerContext) => {
                 // should execute this
@@ -132,6 +132,25 @@ describe('DryadPlayer', function() {
         expect(ran).toBe(true);
       });
     });
+
+    pit('should set context.callCommand in children', function() {
+      let root = new Dryad({}, [new CallsRuntimeCommand()]);
+      let player = new DryadPlayer(root, [layer]);
+      return player.play().then(() => {
+        expect(ran).toBe(true);
+      });
+    });
+
+    // implement this test when you have implemented .update
+    // pit('should execute context.callCommand for any Dryad added by .add', function() {
+    //   let root = new CallsRuntimeCommand();
+    //   let player = new DryadPlayer(root, [layer]);
+    //   return player.play().then(() => {
+    //     expect(ran).toBe(true);
+    //   });
+    //
+    // });
+
   });
 
   // it('on prepare should update context of parent so child sees it', function() {

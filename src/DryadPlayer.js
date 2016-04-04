@@ -113,11 +113,7 @@ export default class DryadPlayer {
       this.setRoot(dryad);
     }
     let prepTree = this._collectCommands('prepareForAdd');
-    let addTree = this._collectCommands('add', {
-      callCommand: (nodeId, commandObject) => {
-        this._callCommand(nodeId, commandObject);
-      }
-    });
+    let addTree = this._collectCommands('add');
     return this._callPrepare(prepTree)
       .then(() => this._call(addTree))
       .then(() => this);
@@ -131,8 +127,8 @@ export default class DryadPlayer {
     return this._call(removeTree).then(() => this);
   }
 
-  _collectCommands(commandName, extraContext) {
-    return this.tree.collectCommands(commandName, this.tree.tree, extraContext);
+  _collectCommands(commandName) {
+    return this.tree.collectCommands(commandName, this.tree.tree, this);
   }
 
   /**
@@ -169,15 +165,23 @@ export default class DryadPlayer {
    * Execute a single command object for a single node using middleware
    * outside the prepareForAdd/add/remove full tree command execution routine.
    *
-   * This is added to the top level context as:
-   * context.callCommand({ command object })
+   * This can be called out of band from a Dryad's add/remove method
    *
    * Its for commands that need to be executed during runtime
    * in response to events, streams etc.
    * eg. spawning synths from an incoming stream of data.
    */
-  _callCommand(nodeId, command) {
+  callCommand(nodeId, command) {
     return this._call(this.tree.makeCommandTree(nodeId, command));
+  }
+
+  /**
+   * Allow a Dryad to update its own context.
+   *
+   * Contexts are immutable - this returns a new context object.
+   */
+  updateContext(context, update) {
+    return this.tree.updateContext(context.id, update);
   }
 }
 
