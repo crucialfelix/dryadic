@@ -190,6 +190,14 @@ export default class DryadPlayer {
   updateContext(context, update) {
     return this.tree.updateContext(context.id, update);
   }
+
+  /**
+   * Get a representation of current state of the tree.
+   * Contains add|remove|prepared and may hold errors.
+   */
+  getDebugState() {
+    return this.tree.getDebugState();
+  }
 }
 
 

@@ -91,6 +91,48 @@ export default class DryadTree {
   }
 
   /**
+   * Get a representation of current state of the tree.
+   * Contains add|remove|prepared and may hold errors.
+   */
+  getDebugState() {
+    const formatState = (s) => {
+      if (!s) {
+        return s;
+      }
+
+      if (s.error) {
+        return `ERROR: ${s.error}`;
+      }
+
+      if (s.add) {
+        return 'running';
+      }
+
+      if (s.remove) {
+        return 'removed';
+      }
+
+      if (s.prepared) {
+        return 'prepared';
+      }
+    };
+
+    const dbug = (node) => {
+      const r = {
+        class: this.dryads[node.id].constructor.name,
+        // props: this.dryads[node.id].properties,
+        state: formatState(this.contexts[node.id].state)
+      };
+      if (node.children.length) {
+        r.children = node.children.map(dbug);
+      }
+      return r;
+    };
+
+    return dbug(this.tree);
+  }
+
+  /**
    * Create and return initial context for a Dryad.
    *
    * Each context inherits from it's parent's context.
