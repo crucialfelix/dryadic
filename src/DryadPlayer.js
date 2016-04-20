@@ -115,7 +115,7 @@ export default class DryadPlayer {
     let prepTree = this._collectCommands('prepareForAdd');
     let addTree = this._collectCommands('add');
     return this._callPrepare(prepTree)
-      .then(() => this._call(addTree))
+      .then(() => this._call(addTree, 'add'))
       .then(() => this);
   }
 
@@ -124,7 +124,7 @@ export default class DryadPlayer {
    */
   stop() {
     let removeTree = this._collectCommands('remove');
-    return this._call(removeTree).then(() => this);
+    return this._call(removeTree, 'remove').then(() => this);
   }
 
   _collectCommands(commandName) {
@@ -146,9 +146,13 @@ export default class DryadPlayer {
     }
     return callAndResolveValues(commands, prepTree.context).then((resolved) => {
       // save resolved to that node's context
-      this.tree.updateContext(prepTree.id, resolved);
+      // and mark that its $prepared: true for debugging
+      this.updateContext(prepTree.context, _.assign({state: {prepare: true}}, resolved));
       let childPromises = prepTree.children.map((childPrep) => this._callPrepare(childPrep));
       return Promise.all(childPromises);
+    }, (error) => {
+      this.updateContext(prepTree.context, {state: {prepare: false, error: error}});
+      return Promise.reject(error);
     });
   }
 
@@ -157,8 +161,11 @@ export default class DryadPlayer {
    *
    * @returns {Promise}
    */
-  _call(commandTree) {
-    return this.middleware.call(commandTree);
+  _call(commandTree, stateTransitionName) {
+    const updateContext = (context, update) => {
+      this.tree.updateContext(context.id, update);
+    };
+    return this.middleware.call(commandTree, stateTransitionName, updateContext);
   }
 
   /**
@@ -172,7 +179,7 @@ export default class DryadPlayer {
    * eg. spawning synths from an incoming stream of data.
    */
   callCommand(nodeId, command) {
-    return this._call(this.tree.makeCommandTree(nodeId, command));
+    return this._call(this.tree.makeCommandTree(nodeId, command), 'callCommand');
   }
 
   /**

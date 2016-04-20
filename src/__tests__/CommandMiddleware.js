@@ -5,20 +5,20 @@ var CommandMiddleware = require('../CommandMiddleware').default;
 
 describe('CommandMiddleware', function() {
   var rc = {
-    commands: {action: 0},
+    commands: {action: () => 0},
     context: {id: 0},
     children: [
       {
-        commands: {action: 1},
+        commands: {action: () => 1},
         context: {id: 1},
         children: []
       },
       {
-        commands: {action: 2},
+        commands: {action: () => 2},
         context: {id: 2},
         children: [
           {
-            commands: {action: 3},
+            commands: {action: () => 3},
             context: {id: 3},
             children: []
           }
@@ -33,30 +33,61 @@ describe('CommandMiddleware', function() {
     var flat = cm._flatten(rc);
     expect(flat.length).toBe(4);
     flat.forEach((f, i) => {
-      expect(f.command.action).toBe(i);
+      expect(f.commands.action()).toBe(i);
       expect(f.context.id).toBe(i);
     });
   });
 
   pit('should call a command root stack', function() {
-    var cm = new CommandMiddleware();
 
-    var middleware = function(commands) {
-      var results = [];
-      commands.forEach((command) => {
-        results.push(command.command.action);
-      });
-      return Promise.all(results);
+    var updatedContext;
+
+    function updateContext(context, update) {
+      // would write to the store
+      updatedContext = update;
+    }
+
+    var middleware = function(commands, context) {
+      if (commands.action) {
+        return commands.action(context);
+      }
     };
 
-    cm.use([middleware]);
+    var cm = new CommandMiddleware([middleware]);
 
-    return cm.call(rc).then((returned) => {
-      // [[0, 1, 2, 3]]
-      // because you are returned a list for each middlware installed
-      expect(returned[0].length).toBe(4);
-      expect(returned[0]).toEqual([0, 1, 2, 3]);
+    return cm.call(rc, 'add', updateContext).then((returned) => {
+      // 4 undefineds
+      expect(returned.length).toBe(4);
+      // state was marked as updated
+      expect(updatedContext).toEqual({state: {add: true}});
     });
   });
 
+  pit('should set state error on failure', function() {
+
+    var updatedContext;
+
+    function updateContext(context, update) {
+      // would write to the store
+      updatedContext = update;
+    }
+
+    var middleware = function(commands/*, context*/) {
+      if (commands.action) {
+        // throw new Error('deliberate failure in middleware');
+        return Promise.reject('deliberate failure in middleware');
+      }
+    };
+
+    var cm = new CommandMiddleware([middleware]);
+
+    return new Promise((resolve, reject) => {
+      cm.call(rc, 'add', updateContext).then(() => {
+        reject('middleware should not have resolved');
+      }).catch((error) => {
+        expect(updatedContext).toEqual({state: {add: false, error: error}});
+        resolve();
+      });
+    });
+  });
 });
