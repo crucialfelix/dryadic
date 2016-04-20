@@ -1,2 +1,8 @@
-/node_modules
-/lib/js/__tests__
+/src
+/lib/__tests__
+.node-version
+.travis.yml
+esdoc.json
+.jscsrc
+.eslintrc
+.babelrc
