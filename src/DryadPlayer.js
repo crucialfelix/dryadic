@@ -28,7 +28,7 @@ if (process) {
  */
 export default class DryadPlayer {
 
-  constructor(rootDryad, layers) {
+  constructor(rootDryad, layers, rootContext = {}) {
     this.middleware = new CommandMiddleware();
     this.classes = {};
     if (layers) {
@@ -36,7 +36,12 @@ export default class DryadPlayer {
         this.use(layer);
       });
     }
-    this.setRoot(rootDryad);
+
+    if (!rootContext.log) {
+      rootContext.log = console;
+    }
+
+    this.setRoot(rootDryad, rootContext);
   }
 
   /**
@@ -46,10 +51,10 @@ export default class DryadPlayer {
    *
    * @param {Dryad} dryad
    */
-  setRoot(dryad) {
+  setRoot(dryad, rootContext) {
     if (dryad) {
       let classLookup = _.bind(this.getClass, this);
-      this.tree = new DryadTree(this.h(dryad), classLookup);
+      this.tree = new DryadTree(this.h(dryad), classLookup, rootContext);
     } else {
       this.tree = null;
     }

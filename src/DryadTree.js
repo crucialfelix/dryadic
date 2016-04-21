@@ -12,11 +12,12 @@ export default class DryadTree {
    * @param {Dryad} rootDryad
    * @param {Function} getClass - lookup function
    */
-  constructor(rootDryad, getClass) {
+  constructor(rootDryad, getClass, rootContext={}) {
     this.root = rootDryad;
     this.dryads = {};
     this.contexts = {};
     this.getClass = getClass;
+    this.rootContext = rootContext;
     this.tree = this._makeTree(this.root);
   }
 
@@ -139,8 +140,8 @@ export default class DryadTree {
    *
    * @returns {Object}
    */
-  _createContext(dryad, dryadId, parentId) {
-    let cc = {id: dryadId};
+  _createContext(dryad, dryadId, parentId, rootContext={}) {
+    let cc = _.assign({id: dryadId}, rootContext);
     if (parentId) {
       let parent = this.dryads[parentId];
       let childContext = parent.childContext(this.contexts[parentId]);
@@ -196,7 +197,7 @@ export default class DryadTree {
     }
 
     let id = parentId ? parentId + '.' + childIndex : '0';
-    let context = this._createContext(dryad, id, parentId);
+    let context = this._createContext(dryad, id, parentId, this.rootContext);
     this.dryads[id] = dryad;
     this.contexts[id] = context;
 
