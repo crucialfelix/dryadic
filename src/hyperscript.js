@@ -37,7 +37,8 @@ export default function hyperscript(root, lookupClassByNameFn) {
     return root;
   }
   if (!Array.isArray(root)) {
-    throw new Error('Malformed argument to hyperscript:' + root);
+    throw new Error('Malformed argument to hyperscript. Expected Array, got: ' +
+      (typeof root) + ' ' + root);
   }
   let [tag, properties, children] = root;
   if (!children && Array.isArray(properties)) {
