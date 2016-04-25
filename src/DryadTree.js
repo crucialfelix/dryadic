@@ -141,7 +141,7 @@ export default class DryadTree {
    * @returns {Object}
    */
   _createContext(dryad, dryadId, parentId, rootContext={}) {
-    let cc = _.assign({id: dryadId}, rootContext);
+    let cc = _.assign({id: dryadId}, rootContext, dryad.initialContext());
     if (parentId) {
       let parent = this.dryads[parentId];
       let childContext = parent.childContext(this.contexts[parentId]);

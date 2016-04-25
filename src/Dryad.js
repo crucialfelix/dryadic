@@ -107,11 +107,21 @@ export default class Dryad {
   requireParent() {}
 
   /**
+   * Initial context
+   *
+   * This dryad's context is also the parent object for all children.
+   */
+  initialContext() {
+    return {};
+  }
+
+  /**
    * Context for child; used when creating initial context for a node
    *
    * Note that the child already inherits from this context.
    *
    * will deprecate this. nothing is using it
+   * @deprecated
    */
   childContext() {
     return {};
