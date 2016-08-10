@@ -176,9 +176,7 @@ export default class DryadPlayer {
    * @returns {Promise}
    */
   _call(commandTree, stateTransitionName) {
-    const updateContext = (context, update) => {
-      this.tree.updateContext(context.id, update);
-    };
+    const updateContext = (context, update) => this.tree.updateContext(context.id, update);
     return this.middleware.call(commandTree, stateTransitionName, updateContext);
   }
 
@@ -197,9 +195,17 @@ export default class DryadPlayer {
   }
 
   /**
-   * Allow a Dryad to update its own context.
+   * updateContext - Allow a Dryad to update its own context.
+   *
+   * This can be called during runtime by event handlers,
+   * updates via stream etc. when you need to save new values into the context
+   * outside of the add/remove/update functions.
    *
    * Contexts are immutable - this returns a new context object.
+   *
+   * @param  {Object} context to update
+   * @param  {Object} update  updated variables
+   * @return {Object}         new context object
    */
   updateContext(context, update) {
     return this.tree.updateContext(context.id, update);
