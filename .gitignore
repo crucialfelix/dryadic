@@ -2,3 +2,4 @@ node_modules
 lib
 .node-version
 esdoc
+coverage

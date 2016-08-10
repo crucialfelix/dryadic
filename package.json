@@ -57,7 +57,10 @@
       "node_modules/underscore",
       "node_modules/bluebird"
     ],
-    "collectCoverage": false
+    "collectCoverage": true,
+    "coveragePathIgnorePatterns": [
+      "/lib/"
+    ]
   },
   "jshintConfig": {
     "esnext": true
