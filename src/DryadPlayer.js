@@ -4,14 +4,16 @@ import CommandMiddleware from './CommandMiddleware';
 import {Promise} from 'bluebird';
 import hyperscript from './hyperscript';
 
+// TODO: This needs to be opt-in
 if (process) {
   process.on('unhandledRejection', function(reason) {
     console.error('Unhandled Rejection:', reason, reason && reason.stack);
+    throw new Error(reason);
   });
 } else {
   Promise.onPossiblyUnhandledRejection((error) => {
-    console.error(error);
-    throw Error(error);
+    console.error('Unhandled Rejection', error);
+    throw new Error(error);
   });
 }
 
@@ -43,7 +45,9 @@ export default class DryadPlayer {
 
     this.log = rootContext.log;
 
-    this._errorHandler = (error) => this.log.error(error);
+    this._errorHandler = (error) => {
+      this.log.error(error.stack);
+    };
 
     this.setRoot(rootDryad, rootContext);
   }
