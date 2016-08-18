@@ -45,7 +45,7 @@ class PrepareWithFunction extends Dryad {
 
 describe('DryadPlayer', function() {
 
-  describe('basics', function() {
+  describe('constructor', function() {
     var root;
     var player;
 
@@ -81,6 +81,22 @@ describe('DryadPlayer', function() {
       return player.stop();
     });
 
+  });
+
+  describe('setRoot', function() {
+    var root;
+    var player;
+
+    beforeEach(() => {
+      root = new TypeOne({}, [new Child()]);
+      player = new DryadPlayer();
+      player.addClass(TypeOne);
+    });
+
+    it('should setRoot', function() {
+      player.setRoot(root);
+      expect(player.tree).toBeTruthy();
+    });
   });
 
   describe('prepareForAdd with function', function() {
