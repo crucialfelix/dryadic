@@ -45,8 +45,8 @@ export default class DryadPlayer {
 
     this.log = rootContext.log;
 
-    this._errorHandler = (error) => {
-      this.log.error(error.stack);
+    this._errorLogger = (msg, error) => {
+      this.log.error(msg, error, error.stack);
     };
 
     this.setRoot(rootDryad, rootContext);
@@ -129,8 +129,11 @@ export default class DryadPlayer {
     let addTree = this._collectCommands('add');
     return this._callPrepare(prepTree)
       .then(() => this._call(addTree, 'add'))
-      .then(() => this)
-      .catch(this._errorHandler);
+      .then(() => this, (error) => {
+        // log the error but continue the Promise chain
+        this._errorLogger('Failed to play', error);
+        return Promise.reject(error);
+      });
   }
 
   /**
@@ -138,7 +141,11 @@ export default class DryadPlayer {
    */
   stop() {
     let removeTree = this._collectCommands('remove');
-    return this._call(removeTree, 'remove').then(() => this).catch(this._errorHandler);
+    return this._call(removeTree, 'remove')
+      .then(() => this, (error) => {
+        this._errorLogger('Failed to stop', error);
+        return Promise.reject(error);
+      });
   }
 
   _collectCommands(commandName) {
