@@ -74,8 +74,7 @@ describe('CommandMiddleware', function() {
 
     var middleware = function(commands/*, context*/) {
       if (commands.action) {
-        // throw new Error('deliberate failure in middleware');
-        return Promise.reject('deliberate failure in middleware');
+        return Promise.reject(new Error('testing deliberate failure in middleware'));
       }
     };
 
@@ -83,7 +82,7 @@ describe('CommandMiddleware', function() {
 
     return new Promise((resolve, reject) => {
       cm.call(rc, 'add', updateContext).then(() => {
-        reject('middleware should not have resolved');
+        reject(new Error('middleware should not have resolved'));
       }).catch((error) => {
         expect(updatedContext).toEqual({state: {add: false, error: error}});
         resolve();
