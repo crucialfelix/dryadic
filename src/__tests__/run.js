@@ -1,5 +1,4 @@
 
-jest.dontMock('../run');
 var run = require('../run').default;
 
 describe('"run" middleware', () => {

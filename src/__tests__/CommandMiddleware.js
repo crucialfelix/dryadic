@@ -1,5 +1,4 @@
 
-jest.dontMock('../CommandMiddleware');
 
 var CommandMiddleware = require('../CommandMiddleware').default;
 

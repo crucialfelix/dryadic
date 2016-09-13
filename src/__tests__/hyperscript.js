@@ -1,6 +1,4 @@
 
-jest.dontMock('../hyperscript');
-jest.dontMock('../Dryad');
 var hyperscript = require('../hyperscript').default;
 var Dryad = require('../Dryad').default;
 

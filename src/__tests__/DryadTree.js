@@ -1,11 +1,4 @@
 
-jest.dontMock('../Dryad');
-jest.dontMock('../DryadTree');
-jest.dontMock('../DryadPlayer');
-jest.dontMock('../CommandMiddleware');
-jest.dontMock('../hyperscript');
-jest.dontMock('../run');
-jest.dontMock('../layer');
 
 var Dryad = require('../Dryad').default;
 var DryadTree = require('../DryadTree').default;
