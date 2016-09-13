@@ -24,4 +24,4 @@ export default function run(command, context) {
   if (command.run) {
     return command.run(context);
   }
-};
+}

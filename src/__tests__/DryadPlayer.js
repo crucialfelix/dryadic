@@ -130,7 +130,7 @@ describe('DryadPlayer', function() {
               run: (innerContext) => {
                 // should execute this
                 if (context.id !== innerContext.id) {
-                  console.error('context', context, innerContext);
+                  // console.error('context', context, innerContext);
                   throw new Error('context and innerContext id do not match');
                 }
                 ran = true;

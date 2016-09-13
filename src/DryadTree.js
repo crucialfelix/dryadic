@@ -172,7 +172,6 @@ export default class DryadTree {
    */
   _makeTree(dryad, parentId, childIndex=0, memo={}) {
     if (!dryad.isDryad) {
-      console.error('Not a dryad', dryad);
       throw new Error('Not a Dryad:' + dryad);
     }
     // Copy seenTypes, pass it to your children
