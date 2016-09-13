@@ -4,20 +4,6 @@ import CommandMiddleware from './CommandMiddleware';
 import {Promise} from 'bluebird';
 import hyperscript from './hyperscript';
 
-// This needs to be opt-in
-// if (process) {
-//   process.on('unhandledRejection', function(reason) {
-//     console.error('Unhandled Rejection:', reason, reason && reason.stack);
-//     throw new Error(reason);
-//   });
-// } else {
-//   Promise.onPossiblyUnhandledRejection((error) => {
-//     console.error('Unhandled Rejection', error);
-//     throw new Error(error);
-//   });
-// }
-
-
 /**
  * Manages play/stop/update for a Dryad tree.
  *
