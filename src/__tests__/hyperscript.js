@@ -62,4 +62,13 @@ describe('hyperscript', function() {
     expect(output.children[0].isDryad).toBeTruthy();
   });
 
+  it('should create Dryads from properties that look like hyperscript forms ', function() {
+    let input = ['genericdryad', {
+      key: ['genericdryad', {}, []]
+    }];
+
+    let output = hyperscript(input, lookupClassByNameFn);
+    expect(output.properties.key).toBeDefined();
+    expect(output.properties.key.isDryad).toBe(true);
+  });
 });
