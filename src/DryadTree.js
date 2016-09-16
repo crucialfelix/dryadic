@@ -82,13 +82,14 @@ export default class DryadTree {
   }
 
   /**
-   * Update the context for a node.
+   * Update a Dryad's context.
    *
    * @param {String} dryadId
-   * @param {Object} update
+   * @param {Object} update - values to assign into context
+   * @returns {Object} context
    */
   updateContext(dryadId, update) {
-    return this.contexts[dryadId] = _.assign(this.contexts[dryadId], update);
+    return _.assign(this.contexts[dryadId], update);
   }
 
   /**
@@ -136,7 +137,8 @@ export default class DryadTree {
   /**
    * Create and return initial context for a Dryad.
    *
-   * Each context inherits from it's parent's context.
+   * Each context has the parent's context as its prototype,
+   * so parent values are visible to children.
    *
    * @returns {Object}
    */

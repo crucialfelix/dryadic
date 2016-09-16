@@ -1,5 +1,4 @@
 
-
 var Dryad = require('../Dryad').default;
 var DryadTree = require('../DryadTree').default;
 var DryadPlayer = require('../DryadPlayer').default;
@@ -57,7 +56,7 @@ describe('DryadTree', function() {
     expect(count).toBe(2);
   });
 
-  it('should create a context with parent as Prototype', function() {
+  it('should create context with parent as Prototype so parent properties are accessible', function() {
     var root = new TypeOne({}, [new TypeTwo()]);
     var tree = new DryadTree(root);
     var rootId = tree.tree.id;
@@ -198,6 +197,68 @@ describe('DryadTree', function() {
       return app._call(ctree).then(() => {
         expect(ran).toBe(true);
       });
+    });
+  });
+
+  describe('updateContext', function() {
+    var tree, dryadId;
+    beforeEach(() => {
+      let root = new Dryad();
+      let app = new DryadPlayer(root, [layer]);
+      tree = app.tree;
+      dryadId = tree.tree.id;
+    });
+
+    it('should set a top level value on context', function() {
+      tree.updateContext(dryadId, {key: 'value'});
+      let c = tree.contexts[dryadId];
+      expect(c.key).toBe('value');
+    });
+
+    it('should set an object', function() {
+      let obj = {
+        sub: 'value'
+      };
+
+      tree.updateContext(dryadId, {obj: obj});
+      let c = tree.contexts[dryadId];
+      expect(c.obj.sub).toBe('value');
+    });
+
+    it('should replace a sub object', function() {
+      let obj = {
+        sub: 'value'
+      };
+
+      tree.updateContext(dryadId, {obj: obj});
+      tree.updateContext(dryadId, {obj: {
+        sub2: 'value2'
+      }});
+
+      let c = tree.contexts[dryadId];
+      expect(c.obj.sub).toBeUndefined();
+      expect(c.obj.sub2).toBe('value2');
+    });
+
+    it('should remove an object if it is set to undefined', function() {
+      /**
+       * Removing a top level object.
+       * Could explicitly delete the key but for now just set it to undefined
+       * if you need to remove something.
+       */
+      let obj = {
+        sub: 'value',
+        sub2: 'value2'
+      };
+      let obj2 = {
+        other: 'thing'
+      };
+
+      tree.updateContext(dryadId, {obj, obj2});
+      tree.updateContext(dryadId, {obj: undefined, obj2});
+      let c = tree.contexts[dryadId];
+      expect(c.obj).toBeUndefined();
+      expect(c.obj2).toBe(obj2);
     });
   });
 });
