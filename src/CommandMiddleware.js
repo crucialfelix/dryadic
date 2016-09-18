@@ -37,7 +37,7 @@ export default class CommandMiddleware {
   call(commandRoot, actionName, updateContext) {
     const stack = this._flatten(commandRoot);
     const promises = stack.map((cc) => {
-      const calls = this.middlewares.map((middleware) => middleware(cc.commands, cc.context));
+      const calls = this.middlewares.map((middleware) => middleware(cc.commands, cc.context, updateContext));
       return Promise.all(calls)
         .then(() => {
           updateContext(cc.context, {state: {[actionName]: true}});

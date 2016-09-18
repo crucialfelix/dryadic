@@ -1,5 +1,6 @@
 
 import run from './run';
+import updateContext from './updateContext';
 
 /**
  * Core middleware functionality
@@ -8,7 +9,8 @@ import run from './run';
  */
 export default {
   middleware: [
-    run
+    run,
+    updateContext
   ],
   classes: []
 };
