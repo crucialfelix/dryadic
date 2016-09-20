@@ -1,4 +1,6 @@
+/* @flow */
 import * as _ from 'underscore';
+import type Dryad from './Dryad';
 
 /**
  * Convert a JSON object into a tree of instantiated Dryads.
@@ -41,7 +43,7 @@ import * as _ from 'underscore';
  *        Dryad classes. It should throw an error if no Dryad class exists by that name.
  * @returns {Dryad} - the root Dryad
  */
-export default function hyperscript(root, lookupClassByNameFn) {
+export default function hyperscript(root:any, lookupClassByNameFn:Function) : Dryad {
 
   if (!root) {
     die(root, 'Got null|undefined.');
@@ -49,7 +51,7 @@ export default function hyperscript(root, lookupClassByNameFn) {
 
   // if the thing implements isDryad then the answer must be yes.
   if (root.isDryad) {
-    return root;
+    return (root : Dryad);
   }
 
   if (!_.isArray(root)) {
@@ -101,7 +103,7 @@ export default function hyperscript(root, lookupClassByNameFn) {
 }
 
 
-function isDryadForm(value) {
+function isDryadForm(value) : boolean {
   return _.isArray(value) && value.length <= 3 && _.isString(value[0]) && _.isObject(value[1]);
 }
 

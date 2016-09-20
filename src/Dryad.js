@@ -1,3 +1,4 @@
+/* @flow */
 import * as _  from 'underscore';
 
 /**
@@ -22,11 +23,15 @@ import * as _  from 'underscore';
 
 export default class Dryad {
 
+  properties: Object;
+  children: Array<Dryad>;
+  tag: ?string;
+
   /**
    * Subclasses should not implement constructor.
    * All Dryad classes take properties and children.
    */
-  constructor(properties={}, children=[]) {
+  constructor(properties:Object={}, children:Array<Dryad>=[]) {
     this.properties = _.assign({}, this.defaultProperties(), properties || {});
     this.children = children || [];
     this.tag = null;
@@ -35,7 +40,7 @@ export default class Dryad {
   /**
    * Defaults properties if none are supplied
    */
-  defaultProperties() {
+  defaultProperties() : Object {
     return {};
   }
 
@@ -50,7 +55,7 @@ export default class Dryad {
    * Middleware supplied by layers will match command keys and will be passed the value.
    * Value is either an object that the middleware uses to do whatever it does (launch things, send messages) or is a function that take context and returns the object.
    */
-  prepareForAdd(/*player*/) {
+  prepareForAdd(/*player:DryadPlayer*/) : Object {
     return {};
   }
 
@@ -64,7 +69,7 @@ export default class Dryad {
    *
    * Command middleware for add may return Promises which resolve on success; ie. when the thing is successfully booted, running etc.
    */
-  add(/*player*/) {
+  add(/*player*/) : Object {
     return {};
   }
 
@@ -78,7 +83,7 @@ export default class Dryad {
    *
    * Command middleware for run may return Promises which resolve on success; ie. when the thing is successfully stopped, remove etc.
    */
-  remove(/*player*/) {
+  remove(/*player*/) : Object {
     return {};
   }
 
@@ -92,7 +97,7 @@ export default class Dryad {
    * will be called. If subgraph is implemented but it does not include itself then
    * .add / .remove will not be called.
    */
-  subgraph() {}
+  subgraph() : ?Dryad {}
 
   /**
    * When Dryad requires a parent Dryad to be somewhere above it then it
@@ -104,14 +109,14 @@ export default class Dryad {
    *
    * @returns {String|undefined} - class name of required parent Dryad
    */
-  requireParent() {}
+  requireParent() : ?string {}
 
   /**
    * Initial context
    *
    * This dryad's context is also the parent object for all children.
    */
-  initialContext() {
+  initialContext() : Object {
     return {};
   }
 
@@ -123,7 +128,7 @@ export default class Dryad {
    * will deprecate this. nothing is using it
    * @deprecated
    */
-  childContext() {
+  childContext() : Object {
     return {};
   }
 
@@ -133,7 +138,7 @@ export default class Dryad {
    *
    * @returns {Boolean}
    */
-  get isDryad() {
+  get isDryad() : boolean {
     return true;
   }
 
@@ -143,11 +148,11 @@ export default class Dryad {
    *
    * @returns {Boolean}
    */
-  static isDryadSubclass() {
+  static isDryadSubclass() : boolean {
     return true;
   }
 
-  clone() {
+  clone() : Dryad {
     let dup = new this.constructor();
     let cloneValue = (c) => (c && c.isDryad) ? c.clone() : _.clone(c);
     dup.properties = _.mapObject(this.properties, cloneValue);

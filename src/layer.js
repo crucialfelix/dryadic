@@ -1,4 +1,4 @@
-
+/* @flow */
 import run from './run';
 import updateContext from './updateContext';
 
@@ -7,10 +7,12 @@ import updateContext from './updateContext';
  *
  * At this point only 'run' but others will follow
  */
+let middleware:Array<Function> = [
+  run,
+  updateContext
+];
+
 export default {
-  middleware: [
-    run,
-    updateContext
-  ],
+  middleware,
   classes: []
 };

@@ -1,3 +1,4 @@
+/* @flow */
 import * as _ from 'underscore';
 
 
@@ -11,11 +12,13 @@ import * as _ from 'underscore';
  */
 export default class CommandMiddleware {
 
-  constructor(middlewares=[]) {
+  middlewares: Array<Function>;
+
+  constructor(middlewares:Array<Function>=[]) {
     this.middlewares = middlewares;
   }
 
-  use(middlewares) {
+  use(middlewares:Array<Function>) {
     this.middlewares = this.middlewares.concat(middlewares);
   }
 
@@ -34,7 +37,7 @@ export default class CommandMiddleware {
    *
    * @returns {Promise} - resolves when all executed commands have resolved
    */
-  call(commandRoot, actionName, updateContext) {
+  call(commandRoot:Object, actionName:string, updateContext:Function) : Promise<*> {
     const stack = this._flatten(commandRoot);
     const promises = stack.map((cc) => {
       const calls = this.middlewares.map((middleware) => middleware(cc.commands, cc.context, updateContext));
@@ -53,7 +56,7 @@ export default class CommandMiddleware {
   /**
    * Given a command object return a flat list of the commands and the childrens' command objects
    */
-  _flatten(node) {
+  _flatten(node:Object) : Array<Object> {
     return [
       {commands: node.commands, context: node.context}
     ].concat(_.flatten(node.children.map((n) => this._flatten(n)), true));

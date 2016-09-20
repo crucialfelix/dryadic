@@ -1,8 +1,10 @@
+/* @flow */
 import _ from 'underscore';
 import DryadTree from './DryadTree';
 import CommandMiddleware from './CommandMiddleware';
 import {Promise} from 'bluebird';
 import hyperscript from './hyperscript';
+import type Dryad from './Dryad';
 
 /**
  * Manages play/stop/update for a Dryad tree.
@@ -16,7 +18,13 @@ import hyperscript from './hyperscript';
  */
 export default class DryadPlayer {
 
-  constructor(rootDryad, layers, rootContext = {}) {
+  middleware: CommandMiddleware;
+  classes: Object;
+  tree: DryadTree;
+  log: any;
+  _errorLogger: Function;
+
+  constructor(rootDryad:Dryad, layers:Array<Object>, rootContext:Object = {}) {
     this.middleware = new CommandMiddleware();
     this.classes = {};
     if (layers) {
@@ -45,13 +53,9 @@ export default class DryadPlayer {
    *
    * @param {Dryad} dryad
    */
-  setRoot(dryad, rootContext) {
-    if (dryad) {
-      let classLookup = _.bind(this.getClass, this);
-      this.tree = new DryadTree(this.h(dryad), classLookup, rootContext);
-    } else {
-      this.tree = null;
-    }
+  setRoot(dryad:Dryad|Array<any>|null, rootContext:Object={}) {
+    let classLookup = _.bind(this.getClass, this);
+    this.tree = new DryadTree(dryad ? this.h(dryad) : null, classLookup, rootContext);
   }
 
   /**
@@ -60,7 +64,7 @@ export default class DryadPlayer {
    * @param {Object} hgraph - JSON style object
    * @returns {Dryad}
    */
-  h(hgraph) {
+  h(hgraph:Dryad|Array<any>) : Dryad {
     let classLookup = _.bind(this.getClass, this);
     return hyperscript(hgraph, classLookup);
   }
@@ -70,7 +74,7 @@ export default class DryadPlayer {
    *
    * @param {Object} layer - .classes is a list of Dryad classes, .middleware is a list of middleware functions
    */
-  use(layer) {
+  use(layer:Object) : DryadPlayer {
     this.middleware.use(layer.middleware || []);
     (layer.classes || []).forEach((c) => this.addClass(c));
     return this;
@@ -82,7 +86,7 @@ export default class DryadPlayer {
    *
    * @param {Dryad} dryadClass
    */
-  addClass(dryadClass) {
+  addClass(dryadClass:Class<Dryad>) : void {
     this.classes[dryadClass.name.toLowerCase()] = dryadClass;
   }
 
@@ -96,21 +100,25 @@ export default class DryadPlayer {
    * @param {String} className - case-insensitive
    * @returns {Dryad}
    */
-  getClass(className) {
+  getClass(className:string) : Class<Dryad> {
     let dryadClass = this.classes[className.toLowerCase()];
     if (!dryadClass) {
-      throw new Error(`Dryad class not found: '${className}' in classes: ${Object.keys(this.classes)}`);
+      throw new Error(`Dryad class not found: '${className}' in classes: ${Object.keys(this.classes).join(', ')}`);
     }
     return dryadClass;
   }
 
   /**
+   * Plays the current document.
+   * Optionally updates to a new document.
+   *
    * @returns {Promise} - that resolves to `this`
    */
-  play(dryad) {
+  play(dryad:?Dryad) : Promise<DryadPlayer> {
     if (dryad) {
       this.setRoot(dryad);
     }
+
     let prepTree = this._collectCommands('prepareForAdd');
     let addTree = this._collectCommands('add');
     return this._callPrepare(prepTree)
@@ -125,7 +133,7 @@ export default class DryadPlayer {
   /**
    * @returns {Promise} - that resolves to `this`
    */
-  stop() {
+  stop() : Promise<DryadPlayer> {
     let removeTree = this._collectCommands('remove');
     return this._call(removeTree, 'remove')
       .then(() => this, (error) => {
@@ -134,8 +142,11 @@ export default class DryadPlayer {
       });
   }
 
-  _collectCommands(commandName) {
-    return this.tree.collectCommands(commandName, this.tree.tree, this);
+  _collectCommands(commandName:string) : Object {
+    if (this.tree) {
+      return this.tree.collectCommands(commandName, this.tree.tree, this);
+    }
+    return {};
   }
 
   /**
@@ -146,7 +157,7 @@ export default class DryadPlayer {
    * @param {Object} prepTree - id, commands, context, children
    * @returns {Promise} - resolves when all Promises in the tree have resolved
    */
-  _callPrepare(prepTree) {
+  _callPrepare(prepTree:Object) : Promise {
     var commands = prepTree.commands || {};
     if (_.isFunction(commands)) {
       commands = commands(prepTree.context);
@@ -168,7 +179,7 @@ export default class DryadPlayer {
    *
    * @returns {Promise}
    */
-  _call(commandTree, stateTransitionName) {
+  _call(commandTree:Object, stateTransitionName:string) : Promise {
     const updateContext = (context, update) => this.tree.updateContext(context.id, update);
     return this.middleware.call(commandTree, stateTransitionName, updateContext);
   }
@@ -183,7 +194,7 @@ export default class DryadPlayer {
    * in response to events, streams etc.
    * eg. spawning synths from an incoming stream of data.
    */
-  callCommand(nodeId, command) {
+  callCommand(nodeId:string, command:Object) : Promise {
     return this._call(this.tree.makeCommandTree(nodeId, command), 'callCommand');
   }
 
@@ -200,7 +211,7 @@ export default class DryadPlayer {
    * @param  {Object} update  updated variables
    * @return {Object}         new context object
    */
-  updateContext(context, update) {
+  updateContext(context:Object, update:Object) : Object {
     return this.tree.updateContext(context.id, update);
   }
 
@@ -208,7 +219,7 @@ export default class DryadPlayer {
    * Get a representation of current state of the tree.
    * Contains add|remove|prepared and may hold errors.
    */
-  getDebugState() {
+  getDebugState() : Object {
     return this.tree.getDebugState();
   }
 }
@@ -225,7 +236,7 @@ export default class DryadPlayer {
  * @param {Object} commands
  * @returns {Object}
  */
-function callAndResolveValues(commands, context) {
+function callAndResolveValues(commands:Object, context:Object) : Object {
   if (_.isEmpty(commands)) {
     return Promise.resolve({});
   }
