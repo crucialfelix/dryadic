@@ -45,7 +45,7 @@
   },
   "jest": {
     "scriptPreprocessor": "<rootDir>/node_modules/babel-jest",
-    "testRegex": "(/__tests__/.*|\\.(test|spec))\\.(js|json)$",
+    "testRegex": "(/__tests__/[a-zA-Z].*|\\.(test|spec))\\.(js|json)$",
     "testPathDirs": [
       "src"
     ],

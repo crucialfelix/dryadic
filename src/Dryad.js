@@ -152,6 +152,15 @@ export default class Dryad {
     return true;
   }
 
+  /**
+   * When Dryads are used a properties for other Dryads,
+   * they should implement .value to return whatever information
+   * the parent Dryad needs from them.
+   */
+  value(/*context:Object*/) : any {
+    throw new Error('Subclass responsibility: .value()');
+  }
+
   clone() : Dryad {
     let dup = new this.constructor();
     let cloneValue = (c) => (c && c.isDryad) ? c.clone() : _.clone(c);

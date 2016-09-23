@@ -1,6 +1,7 @@
 /* @flow */
 import * as _ from 'underscore';
 import { invertDryadicProperties } from './Properties';
+import { mapProperties } from './utils';
 import type Dryad from './Dryad';
 import type DryadPlayer from './DryadPlayer';
 
@@ -34,9 +35,7 @@ export default class DryadTree {
     // tree structure
     if (this.root) {
       this.tree = this._makeTree(this.root);
-      this.walk((dryad, context, node:TreeNode) => {
-        this.nodeLookUp.set(node.id, node);
-      });
+      this.walk((node:TreeNode) => this.nodeLookUp.set(node.id, node));
     }
   }
 
@@ -261,6 +260,29 @@ export default class DryadTree {
     }
 
     let id = parentId ? parentId + '.' + childIndex : '0';
+
+    // If any properties are Dryads then clone them into a Properties
+    // dryad with this dryad as it's downstream child. This puts them
+    // higher up in the play graph.
+    let propertiesDryad = invertDryadicProperties(dryad);
+    if (propertiesDryad) {
+      // This makes the context
+      let propertiesNode = this._makeTree(propertiesDryad, id, 'props', memo);
+      // The property accessors need this function to lookup the child dryad and get its .value()
+      this.contexts[propertiesNode.id].getChildValue = (cindex) => {
+        let node = this.nodeLookUp.get(propertiesNode.id);
+        if (node) {
+          let childNode = node.children[cindex];
+          // get the dryad and context
+          return childNode.dryad.value(this.contexts[childNode.id]);
+        } else {
+          throw new Error(`Dryad TreeNode not registered in nodeLookUp: ${id}`);
+        }
+      };
+
+      return propertiesNode;
+    }
+
     let context = this._createContext(dryad, id, parentId, this.rootContext);
     this.dryads[id] = dryad;
     this.contexts[id] = context;
