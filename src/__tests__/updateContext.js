@@ -9,6 +9,7 @@ describe('"updateContext" middleware', () => {
         }
       };
     let context = {};
+    let properties = {};
     var updates = null;
 
     let updater = (argContext, argCommand) => {
@@ -16,7 +17,7 @@ describe('"updateContext" middleware', () => {
       updates = argCommand;
     };
 
-    updateContext(commands, context, updater);
+    updateContext(commands, context, properties, updater);
 
     expect(updates).toBeTruthy();
     expect(updates).toBe(commands.updateContext);

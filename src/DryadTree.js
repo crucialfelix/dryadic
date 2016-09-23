@@ -100,13 +100,19 @@ export default class DryadTree {
       case 'remove':
         commands = dryad.remove(player);
         break;
+      // case 'callCommands'
       default:
         throw new Error('Unsupported command ${methodName}');
     }
 
+    // Call any properties that are functions to get the 'value'
+    // invertDryadicProperties replaces Dryads in properties with these accessor functions
+    let properties = mapProperties(dryad.properties, (value) : any => _.isFunction(value) ? value(context) : value);
+
     return {
       commands,
       context,
+      properties,
       id: node.id,
       children: node.children.map((child) => this.collectCommands(methodName, child, player))
     };

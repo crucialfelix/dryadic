@@ -162,6 +162,7 @@ export default class DryadPlayer {
     if (_.isFunction(commands)) {
       commands = commands(prepTree.context);
     }
+
     return callAndResolveValues(commands, prepTree.context).then((resolved) => {
       // save resolved to that node's context
       // and mark that its $prepared: true for debugging
@@ -240,6 +241,7 @@ function callAndResolveValues(commands:Object, context:Object) : Object {
   if (_.isEmpty(commands)) {
     return Promise.resolve({});
   }
+
   const keys = _.keys(commands);
   return Promise.map(keys, (key) => {
     let value = commands[key];

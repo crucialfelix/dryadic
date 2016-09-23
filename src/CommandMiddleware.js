@@ -29,8 +29,6 @@ export default class CommandMiddleware {
    * and the entire action (add, remove, update) is considered complete
    * when all command results have resolved.
    *
-   *
-   *
    * @param {Object} commandRoot - The root command node of the tree as collected by DryadTree collectCommands. It contains pointers to the children.
    * @param {String} actionName - Each node has its context updated after success or failure as `{state: {actionName: true|false[, error: error]}}` On failure the error will also be stored here for debugging.
    * @param {Function} updateContext - supplied by the DryadPlayer, a function to update the context for a node.
@@ -40,7 +38,7 @@ export default class CommandMiddleware {
   call(commandRoot:Object, actionName:string, updateContext:Function) : Promise<*> {
     const stack = this._flatten(commandRoot);
     const promises = stack.map((cc) => {
-      const calls = this.middlewares.map((middleware) => middleware(cc.commands, cc.context, updateContext));
+      const calls = this.middlewares.map((middleware) => middleware(cc.commands, cc.context, cc.properties, updateContext));
       return Promise.all(calls)
         .then(() => {
           updateContext(cc.context, {state: {[actionName]: true}});
