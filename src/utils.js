@@ -1,6 +1,7 @@
 /* @flow */
 import * as _ from 'underscore';
-
+import isPlainObject from 'is-plain-object';
+import type Dryad from './Dryad';
 
 /**
  * Deep map Dryad property object using a function
@@ -11,7 +12,7 @@ import * as _ from 'underscore';
  */
 export function mapProperties(properties:Object, fn:Function, _prefixKeys:Array<string>=[]) : Object {
   const result = {};
-  if (!_.isObject(properties)) {
+  if (!isObject(properties)) {
     throw new Error(`Invalid type: ${typeof properties}`);
   }
 
@@ -47,8 +48,8 @@ function concatKeys(keys:Array<string>) : string {
 }
 
 
-export function isDryad(value:any) : Boolean {
-  return _.isObject(value) && Boolean(value.isDryad);
+export function isDryad(value:any) : boolean {
+  return _.isObject(value) && (value.isDryad ? true : false);
 }
 
 
@@ -58,5 +59,10 @@ export function isDryad(value:any) : Boolean {
  * Not Dryad, Array, Function, number etc
  */
 export function isObject(value:any) : boolean {
-  return !isDryad(value) && _.isObject(value) && !_.isArray(value) && !_.isFunction(value);
+  return isPlainObject(value);
+}
+
+
+export function className(dryad:Dryad) : string {
+  return dryad.constructor.name;
 }
