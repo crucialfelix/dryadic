@@ -26,12 +26,13 @@ class TypeOne extends Dryad {
 class Child extends Dryad {}
 
 class PrepareWithFunction extends Dryad {
+  /**
+   * should resolve with or without a function
+   */
   prepareForAdd() {
-    return (/*context*/) => {
-      return {
-        one: 1,
-        two: 2
-      };
+    return {
+      one: () => 1,
+      two: 2
     };
   }
 }

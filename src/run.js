@@ -20,8 +20,8 @@
  *   };
  *  }
  */
-export default function run(command:Object, context:Object) : ?Promise<*> {
+export default function run(command:Object, context:Object, properties:Object) : any|Promise<*> {
   if (command.run) {
-    return command.run(context);
+    return command.run(context, properties);
   }
 }

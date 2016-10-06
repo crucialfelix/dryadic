@@ -124,33 +124,44 @@ describe('DryadTree', function() {
   });
 
   describe('Dryads in properties', function() {
+    let app = makeApp([Child, Parent, TypeOne]);
+    let root = new Parent({key: new TypeOne()}, []);
+    app.setRoot(root);
+    let treeRoot = app.tree.tree;
 
     it('should invert Dryads in properties as a Properties dryad', function() {
-      let app = makeApp([Child, Parent, TypeOne]);
-      var root = new Parent({key: new TypeOne()}, []);
-      app.setRoot(root);
-      var treeRoot = app.tree.tree;
+
       expect(treeRoot.dryadType).toBe('Properties');
+
       let child = treeRoot.children[0];
       expect(child.dryadType).toBe('TypeOne');
-      let source = treeRoot.children[1];
+
+      // PropertiesOwner({...}, [Parent])
+      let source = treeRoot.children[1].children[0];
       expect(source.dryadType).toBe('Parent');
+
+      // returns the value that TypeOne returns
       let propertyAccessor = source.dryad.properties.key;
       expect(typeof propertyAccessor).toBe('function');
-      let result = propertyAccessor({getChildValue: () => 'yes'});
-      expect(result).toBe('yes');
+      // Cannot read propertiesValues
+      // you need context
+      // let result = propertyAccessor();
+      // expect(result).toBe(1);
     });
+
+
   });
 
   describe('prepareForAdd can be a function', function() {
-    var value = 'value';
+
+    let value = 'value';
 
     class ParentWithPrepareFn extends Dryad {
       prepareForAdd() {
         return {
           one: (context) => {
             if (!context) {
-              throw new Error('no contex supplied to prepareForAdd inner function');
+              throw new Error('no context supplied to prepareForAdd inner function');
             }
             return value;
           },
@@ -162,12 +173,13 @@ describe('DryadTree', function() {
     class Inner extends Dryad {}
 
     pit('should call fn and save to context', function() {
-      var root = new ParentWithPrepareFn({}, [new Inner({})]);
-      var app = new DryadPlayer(root);
+      let root = new ParentWithPrepareFn({}, [new Inner({})]);
+      let app = new DryadPlayer(root);
+
       return app.play().then(() => {
-        var tree = app.tree;
-        var rootId = tree.tree.id;
-        var childId = tree.tree.children[0].id;
+        let tree = app.tree;
+        let rootId = tree.tree.id;
+        let childId = tree.tree.children[0].id;
 
         // root context should have one two = 'value'
         expect(tree.contexts[rootId].one).toBe(value);
@@ -182,21 +194,20 @@ describe('DryadTree', function() {
   describe('collectCommands', function() {
     it('should include properties', function() {
       let app = makeApp([Child, Parent, TypeOne]);
-      var root = new Parent({key: new TypeOne()}, []);
+      let root = new Parent({key: new TypeOne()}, []);
       app.setRoot(root);
 
       // this is the top level command
       let cmds = app.tree.collectCommands('add', app.tree.tree, app);
-      // get the Parent which is now the last child of the Proeprties (the play graph root)
-      let parentCmd = cmds.children[1];
-      // let typeOneCmd = cmds.children[0];
-      // properties.key should be the value: 1
-      // Object { '0': undefined }
-      // which looks like mapping an array thinking that its an object
+      // get the Parent which is now the the child of the last child of the Properties (the play graph root)
+      // console.log({cmds});
+      let parentCmd = cmds.children[1].children[0];
+      // console.log({parentCmd});
+
       expect(parentCmd.properties).toBeDefined();
-      // expect(typeof parentCmd.properties.key).toBe('number');
-      expect(parentCmd.properties.key).toBe(1);
+      expect(typeof parentCmd.properties.key).toBe('function');
       // that when evaluated with produces the number 1
+      // but only after you have executed the tree
     });
   });
 
