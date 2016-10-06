@@ -26,7 +26,6 @@ export default class Dryad {
 
   properties: Object;
   children: Array<Dryad>;
-  tag: ?string;
 
   /**
    * Subclasses should not implement constructor.
@@ -35,7 +34,6 @@ export default class Dryad {
   constructor(properties:Object={}, children:Array<Dryad>=[]) {
     this.properties = _.assign({}, this.defaultProperties(), properties || {});
     this.children = children || [];
-    this.tag = null;
   }
 
   /**
