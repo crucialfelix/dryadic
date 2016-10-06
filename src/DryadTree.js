@@ -317,15 +317,11 @@ export default class DryadTree {
     let makeSubgraph = (dr) => {
       let subgraph = dr.subgraph();
       if (subgraph) {
-        context.subgraph = {};
         let subMemo = _.clone(memo);
         // When and if this dryad appears in its own subgraph
         // then do not call subgraph() on that. It will just
         // do prepare/add/remove on its own self.
         subMemo.skipSubgraphOf = dryad;
-        // objects in subgraph will store references to themselves
-        // in this dryad's context because of this memo flag:
-        subMemo.subgraphOfId = id;
         // if its an array then should have been supplied in a Branch
         if (Array.isArray(subgraph)) {
           throw new Error('Dryad subgraph should return a single Dryad with children. ${dr} ${subgraph}');
@@ -340,16 +336,6 @@ export default class DryadTree {
         // may still be subgraph children to come
         delete memo.skipSubgraphOf;
       } else {
-        // This dryad is in a subgraph of another
-        // store self and context in that parent's context
-        // under the dryad.tag or create a unique id
-        if (memo.subgraphOfId) {
-          this.contexts[memo.subgraphOfId].subgraph[dryad.tag || id] = {
-            dryad: dryad,
-            context: context
-          };
-        }
-
         let subgraph = makeSubgraph(dryad);
         if (subgraph) {
           return subgraph;
