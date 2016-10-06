@@ -131,6 +131,19 @@ export default class DryadTree {
   }
 
   /**
+   * For any properties that are functions, call them with context to get the 'value'.
+   * These converted/resolved values are passed into the commands at prepareForAdd/add etc.
+   */
+  dryadProperties(nodeId:string) : Object {
+    let dryad = this.dryads[nodeId];
+    let context = this.contexts[nodeId];
+    // invertDryadicProperties replaces Dryads in properties with these accessor functions
+    return mapProperties(dryad.properties, (value) : any => {
+      return _.isFunction(value) ? value(context) : value;
+    });
+  }
+
+  /**
    * Update a Dryad's context.
    *
    * @param {String} dryadId
@@ -139,6 +152,10 @@ export default class DryadTree {
    */
   updateContext(dryadId:string, update:Object) : Object {
     return _.assign(this.contexts[dryadId], update);
+  }
+
+  getContext(dryadId:string) : Object {
+    return this.contexts[dryadId];
   }
 
   /**
@@ -266,21 +283,7 @@ export default class DryadTree {
     // higher up in the play graph.
     let propertiesDryad = invertDryadicProperties(dryad);
     if (propertiesDryad) {
-      // This makes the context
-      let propertiesNode = this._makeTree(propertiesDryad, id, 'props', memo);
-      // The property accessors need this function to lookup the child dryad and get its .value()
-      this.contexts[propertiesNode.id].getChildValue = (cindex) => {
-        let node = this.nodeLookUp.get(propertiesNode.id);
-        if (node) {
-          let childNode = node.children[cindex];
-          // get the dryad and context
-          return childNode.dryad.value(this.contexts[childNode.id]);
-        } else {
-          throw new Error(`Dryad TreeNode not registered in nodeLookUp: ${id}`);
-        }
-      };
-
-      return propertiesNode;
+      return this._makeTree(propertiesDryad, parentId, `${childIndex}.props`, memo);
     }
 
     let context = this._createContext(dryad, id, parentId, this.rootContext);
