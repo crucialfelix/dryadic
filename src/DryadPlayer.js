@@ -40,8 +40,12 @@ export default class DryadPlayer {
 
     this.log = rootContext.log;
 
+    // default logger
     this._errorLogger = (msg, error) => {
       this.log.error(msg, error, error.stack);
+      this.log.error('STATE TREE:');
+      this.log.error(JSON.stringify(this.getDebugState(), null, 2));
+      // and emit error event
     };
 
     this.setRoot(rootDryad, rootContext);

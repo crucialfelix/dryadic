@@ -1,5 +1,6 @@
 /* @flow */
 import * as _  from 'underscore';
+import type DryadPlayer from './DryadPlayer';
 
 /**
  * >> A dryad (/ˈdraɪ.æd/; Greek: Δρυάδες, sing.: Δρυάς) is a tree nymph, or female tree spirit, in Greek mythology
@@ -55,7 +56,7 @@ export default class Dryad {
    * Middleware supplied by layers will match command keys and will be passed the value.
    * Value is either an object that the middleware uses to do whatever it does (launch things, send messages) or is a function that take context and returns the object.
    */
-  prepareForAdd(/*player:DryadPlayer*/) : Object {
+  prepareForAdd(player:DryadPlayer) : Object {  // eslint-disable-line no-unused-vars
     return {};
   }
 
@@ -69,7 +70,7 @@ export default class Dryad {
    *
    * Command middleware for add may return Promises which resolve on success; ie. when the thing is successfully booted, running etc.
    */
-  add(/*player*/) : Object {
+  add(player:DryadPlayer) : Object {  // eslint-disable-line no-unused-vars
     return {};
   }
 
@@ -83,7 +84,7 @@ export default class Dryad {
    *
    * Command middleware for run may return Promises which resolve on success; ie. when the thing is successfully stopped, remove etc.
    */
-  remove(/*player*/) : Object {
+  remove(player:DryadPlayer) : Object {  // eslint-disable-line no-unused-vars
     return {};
   }
 
@@ -158,7 +159,7 @@ export default class Dryad {
    * the parent Dryad needs from them.
    */
   value(/*context:Object*/) : any {
-    throw new Error('Subclass responsibility: .value()');
+    throw new Error(`Subclass responsibility: ${this.constructor.name} should implement 'value()'`);
   }
 
   clone() : Dryad {

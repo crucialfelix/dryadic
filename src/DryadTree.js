@@ -180,16 +180,20 @@ export default class DryadTree {
         return 'removed';
       }
 
-      if (s.prepared) {
+      if (s.prepare) {
         return 'prepared';
       }
+
+      return `Unknown: ${JSON.stringify(s)}`;
     };
 
     const dbug = (node) => {
       let r = {
+        id: node.id,
         class: this.dryads[node.id].constructor.name,
-        // props: this.dryads[node.id].properties,
         state: formatState(this.contexts[node.id].state)
+        // circular references, cannot print
+        // context: JSON.stringify(this.contexts[node.id], null, 2)
       };
       if (node.children.length) {
         r = _.assign(r, {children: node.children.map(dbug)});
@@ -201,6 +205,26 @@ export default class DryadTree {
       return dbug(this.tree);
     } else {
       return {};
+    }
+  }
+
+  /**
+   * Return the current play graph as a hyperscript document.
+   * Useful for testing and debugging.
+   */
+  hyperscript() : ?Array<mixed> {
+
+    function asH(node) {
+      let dryad = node.dryad;
+      return [
+        className(dryad),
+        dryad.properties,  // may contain accessor functions
+        node.children.map(asH)
+      ]
+    }
+
+    if (this.tree) {
+      return asH(this.tree);
     }
   }
 
