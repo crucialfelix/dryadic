@@ -60,7 +60,7 @@ export default class DryadTree {
 
     if (node) {
       memo = fn(node, this.dryads[node.id], this.contexts[node.id], memo);
-      node.children.forEach((child) => {
+      node.children.forEach((child:TreeNode) => {
         memo = this.walk(fn, child, memo);
       });
     }
@@ -211,21 +211,19 @@ export default class DryadTree {
   }
 
   /**
-   * Creates the expanded play graph as a tree of objects.
+   * Creates the expanded play graph as a tree of TreeNodes.
+   *
    * It is called initially with the root Dryad, then recursively for each child down the tree.
    *
    * - Generates ids for each Dryad
    * - Creates a context for each, storing in this.contexts
    *
-   * Each node in the tree contains:
-   *
-   *    {id:string, dryad:Dryad, type:string, children:Array<Object>}
+   * Each node in the tree contains a TreeNode
    *
    * Dryad classes may use requireParent() and subgraph() to replace themselves
    * with a different graph.
    *
    * So this tree is not a direct mapping of the input graph, it is the expanded play graph.
-   *
    *
    * This method calls itself recursively for children.
    *
@@ -344,49 +342,16 @@ export default class DryadTree {
       id,
       dryad,
       dryadType,
-      // parent: this.contexts[parentId],
-      this._convertObject(dryad.children, id, childIndex, memo)
+      dryad.children.map((child, i) => {
+        return this._makeTree(child, id, i, memo)
+      })
     );
-  }
-
-  /**
-   * private.
-   *
-   * Calls the appropriate method on the dryad.children
-   * Currently it can only be an Array and all the children
-   * must be a Dryad.
-   *
-   * It will be used for including the properties in the tree
-   * for use in diffing. If there are any Dryad in the properties
-   * then the Dryad class is currently responsible for returning those
-   * in subgraph() so they get launched.
-   *
-   * @param {Dryad|Array<Dryad>|Object|String|Number|undefined} obj
-   */
-  _convertObject(obj:any, parentId:string, childIndex:number|string=0, memo:Object={}) : Dryad|Array<Dryad>|Object|string|number {
-    if (obj.isDryad) {
-      return this._makeTree(obj, parentId, childIndex, memo);
-    }
-    if (_.isArray(obj)) {
-      return _.map(obj, (pp, ii) => {
-        return this._convertObject(pp, parentId, ii, memo);
-      });
-    }
-    if (_.isObject(obj)) {
-      return _.mapObject(obj, (pp, key) => {
-        return this._convertObject(pp, parentId, key, memo);
-      });
-    }
-    // should check that its a primitive type
-    return obj;
   }
 }
 
 
-// maybe express as a type
-// type TreeNode = {id:string, dryad:Dryad, dryadType:string, children:Array<TreeNode>}
-
 class TreeNode {
+
   id: string;
   dryad: Dryad;
   dryadType: string;
