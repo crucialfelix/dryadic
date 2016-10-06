@@ -1,7 +1,8 @@
 /* @flow */
 import * as _ from 'underscore';
 import { invertDryadicProperties } from './Properties';
-import { mapProperties } from './utils';
+import { mapProperties, className } from './utils';
+import CommandNode from './CommandNode';
 import type Dryad from './Dryad';
 import type DryadPlayer from './DryadPlayer';
 
@@ -73,49 +74,43 @@ export default class DryadTree {
    *
    * @param {String} methodName
    * @param {TreeNode} node - default is the root
-   * @returns {Object}
+   * @returns {CommandNode}
    */
-  collectCommands(methodName:string, node:?TreeNode, player:DryadPlayer) : Object {
-    if (!node) {
-      node = this.tree;
-    }
-
-    if (!node) {
-      // empty tree, empty commands
-      return {};
-    }
+  collectCommands(methodName:string, node:TreeNode, player:DryadPlayer) : CommandNode {
 
     let dryad = this.dryads[node.id];
     let context = this.contexts[node.id];
 
-    // let commands = dryad[methodName](player);
     let commands:?Object;
-    switch (methodName) {
-      case 'prepareForAdd':
-        commands = dryad.prepareForAdd(player);
-        break;
-      case 'add':
-        commands = dryad.add(player);
-        break;
-      case 'remove':
-        commands = dryad.remove(player);
-        break;
-      // case 'callCommands'
-      default:
-        throw new Error('Unsupported command ${methodName}');
+    try {
+      switch (methodName) {
+        case 'prepareForAdd':
+          commands = dryad.prepareForAdd(player);
+          break;
+        case 'add':
+          commands = dryad.add(player);
+          break;
+        case 'remove':
+          commands = dryad.remove(player);
+          break;
+        // case 'callCommands'
+        default:
+          throw new Error(`Unsupported command ${methodName}`);
+      }
+
+    } catch(error) {
+      player.log.log(`Error during collectCommands "${methodName}" for node:\n`);
+      player.log.log(node);
+      throw error;
     }
 
-    // Call any properties that are functions to get the 'value'
-    // invertDryadicProperties replaces Dryads in properties with these accessor functions
-    let properties = mapProperties(dryad.properties, (value) : any => _.isFunction(value) ? value(context) : value);
-
-    return {
+    return new CommandNode(
       commands,
       context,
-      properties,
-      id: node.id,
-      children: node.children.map((child) => this.collectCommands(methodName, child, player))
-    };
+      dryad.properties,
+      node.id,
+      node.children.map(child => this.collectCommands(methodName, child, player))
+    );
   }
 
   /**
@@ -125,13 +120,14 @@ export default class DryadTree {
    * This is for runtime execution of commands,
    * called from streams and async processes initiated during Dryad's .add()
    */
-  makeCommandTree(nodeId:string, command:Object) : Object {
-    return {
-      commands: command,
-      context: this.contexts[nodeId],
-      id: nodeId,
-      children: []
-    };
+  makeCommandTree(nodeId:string, commands:Object) : Object {
+    return new CommandNode(
+      commands,
+      this.contexts[nodeId],
+      this.dryads[nodeId].properties,
+      nodeId,
+      []
+    );
   }
 
   /**
