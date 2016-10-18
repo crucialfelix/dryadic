@@ -180,7 +180,7 @@ export default class DryadTree {
         return 'removed';
       }
 
-      if (s.prepare) {
+      if (s.prepareForAdd) {
         return 'prepared';
       }
 
@@ -188,10 +188,12 @@ export default class DryadTree {
     };
 
     const dbug = (node) => {
+      let context = this.contexts[node.id];
+      let state = context.hasOwnProperty('state') ? context.state : undefined;
       let r = {
         id: node.id,
         class: this.dryads[node.id].constructor.name,
-        state: formatState(this.contexts[node.id].state)
+        state: formatState(state)
         // circular references, cannot print
         // context: JSON.stringify(this.contexts[node.id], null, 2)
       };
