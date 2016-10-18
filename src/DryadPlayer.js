@@ -125,9 +125,8 @@ export default class DryadPlayer {
    * .play commands should not fail
    *
    */
-  prepare() : Promise<*> {
-    let prepTree = this._collectCommands('prepareForAdd');
-    return this._callPrepare(prepTree);
+  prepare() : Promise<DryadPlayer> {
+    return this.call('prepareForAdd');
   }
 
   /**
@@ -143,10 +142,7 @@ export default class DryadPlayer {
     }
 
     return this.prepare()
-      .then(() => {
-        let addTree = this._collectCommands('add');
-        return this._call(addTree, 'add');
-      })
+      .then(() => this.call('add'))
       .then(() => this, (error) => {
         // Log the error but continue the Promise chain
         this._errorLogger('Failed to play', error);
@@ -158,8 +154,7 @@ export default class DryadPlayer {
    * @returns {Promise} - that resolves to `this`
    */
   stop() : Promise<DryadPlayer> {
-    let removeTree = this._collectCommands('remove');
-    return this._call(removeTree, 'remove')
+    return this.call('remove')
       .then(() => this, (error) => {
         this._errorLogger('Failed to stop', error);
         return Promise.reject(error);
@@ -175,45 +170,20 @@ export default class DryadPlayer {
   }
 
   /**
-   * Execute a prepareForAdd tree of command objects.
-   *
-   * Values of the command objects are functions may return Promises.
-   *
-   * @param {Object} prepTree - id, commands, context, children
-   * @returns {Promise} - resolves when all Promises in the tree have resolved
+   * Collect commands and call for a transition: add|remove|prepareForAdd
    */
-  _callPrepare(prepTree:CommandNode) : Promise {
-    return this._callAndResolveValues(prepTree.commands, prepTree.context).then((resolved) => {
-      // Save resolved values into the node's context
-      // and mark it prepare: true for debugging purposes.
-      this.updateContext(prepTree.context, _.assign({state: {prepare: true}}, resolved));
-      // Prepare children in series, waiting for each one to complete.
-      // TODO: do that only when requested (eg. Properties)
-      // otherwise prepare in parallel as before
-      let p;
-      prepTree.children.forEach((childPrepCommandNode) => {
-        if (!p) {
-          p = this._callPrepare(childPrepCommandNode);
-        } else {
-          p = p.then(() => this._callPrepare(childPrepCommandNode));
-        }
-      });
-      return p;
-    })
-    .then(null, (error) => {
-      this.updateContext(prepTree.context, {state: {prepare: false, error: error}});
-      return Promise.reject(error);
-    });
+  call(stateTransitionName:string) : Promise<DryadPlayer> {
+    let cmdTree = this._collectCommands(stateTransitionName);
+    return this._call(cmdTree, stateTransitionName).then(() => this);
   }
 
   /**
    * Execute a command tree using middleware.
-   *
-   * @returns {Promise}
    */
   _call(commandTree:CommandNode, stateTransitionName:string) : Promise {
-    const updateContext = (context, update) => this.tree.updateContext(context.id, update);
-    return this.middleware.call(commandTree, stateTransitionName, updateContext);
+    return this.middleware.call(commandTree,
+      stateTransitionName,
+      (context, update) => this.tree.updateContext(context.id, update));
   }
 
   /**
@@ -245,32 +215,6 @@ export default class DryadPlayer {
    */
   updateContext(context:Object, update:Object) : Object {
     return this.tree.updateContext(context.id, update);
-  }
-
-  /**
-   * Returns a new object with each value mapped to the called-and-resolved value.
-   *
-   * For each key/value in commands object,
-   * if value is a function then call it
-   * if result is a Promise then resolve it.
-  */
-  _callAndResolveValues(commands:Object, context:Object) : Promise<Object> {
-    if (_.isEmpty(commands)) {
-      return Promise.resolve({});
-    }
-
-    const keys = _.keys(commands);
-    return Promise.map(keys, (key) => {
-      let value = commands[key];
-      let properties = this.tree.dryadProperties(context.id);
-      return Promise.resolve(_.isFunction(value) ? value(context, properties) : value);
-    }).then((values) => {
-      let result = {};
-      keys.forEach((key, i) => {
-        result[key] = values[i];
-      });
-      return result;
-    });
   }
 
   /**

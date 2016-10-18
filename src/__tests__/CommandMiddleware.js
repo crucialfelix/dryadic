@@ -1,5 +1,6 @@
 /* @flow */
 
+import * as _ from 'underscore';
 import CommandNode from '../CommandNode';
 import CommandMiddleware from '../CommandMiddleware';
 
@@ -35,17 +36,17 @@ describe('CommandMiddleware', function() {
     ]
   );
 
-  it('should flatten command objects and their children to a flat list', function() {
-    var cm = new CommandMiddleware();
-
-    var flat = cm._flatten(commandNode);
-    expect(flat.length).toBe(4);
-    flat.forEach((f, i) => {
-      expect(f.commands.action()).toBe(i);
-      expect(f.properties.key).toBe('value');
-      expect(f.context.id).toBe(String(i));
-    });
-  });
+  // it('should flatten command objects and their children to a flat list', function() {
+  //   var cm = new CommandMiddleware();
+  //
+  //   var flat = cm._flatten(commandNode);
+  //   expect(flat.length).toBe(4);
+  //   flat.forEach((f, i) => {
+  //     expect(f.commands.action()).toBe(i);
+  //     expect(f.properties.key).toBe('value');
+  //     expect(f.context.id).toBe(String(i));
+  //   });
+  // });
 
   pit('should call a command root stack', function() {
 
@@ -66,7 +67,9 @@ describe('CommandMiddleware', function() {
 
     return cm.call(commandNode, 'add', updateContext).then((returned) => {
       // 4 undefineds
-      expect(returned.length).toBe(4);
+      // [ undefined, [ undefined ], [ undefined, [ undefined ] ] ]
+      // these are the returned results of executing each commandNode showing that it ran it for each of the 4 Dryads
+      expect(_.flatten(returned).length).toBe(4);
       // state was marked as updated
       expect(updatedContext).toEqual({state: {add: true}});
     });

@@ -44,15 +44,12 @@ export default class Dryad {
   }
 
   /**
-   * Returns a command object or a function that is called with node context and will return a command object.
+   * Returns a command object that specifies actions that need to be completed
+   * before the Dryad's resource is able to play.
    *
-   * Values of the command objects are functions may return Promises,
-   * and may reject those promises which will halt the .add() operation
-
-   * The function is called with the node's context
-   *
-   * Middleware supplied by layers will match command keys and will be passed the value.
-   * Value is either an object that the middleware uses to do whatever it does (launch things, send messages) or is a function that take context and returns the object.
+   * The most useful command to use here is `updateContext` which when called
+   * will allocate resources, start up servers etc. and then save handles,
+   * pids, node ids etc. into the context for use by .add()
    */
   prepareForAdd(player:DryadPlayer) : Object {  // eslint-disable-line no-unused-vars
     return {};

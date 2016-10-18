@@ -2,12 +2,17 @@
 var updateContext = require('../updateContext').default;
 
 describe('"updateContext" middleware', () => {
-  it('should update into context', () => {
+
+  pit('should update into context', () => {
+    let values = {
+      new: 'value'
+    };
+
     let commands = {
-        updateContext: {
-          new: 'value'
-        }
-      };
+      updateContext: (/*context*/) => {
+        return values;
+      }
+    };
     let context = {};
     let properties = {};
     var updates = null;
@@ -17,10 +22,12 @@ describe('"updateContext" middleware', () => {
       updates = argCommand;
     };
 
-    updateContext(commands, context, properties, updater);
-
-    expect(updates).toBeTruthy();
-    expect(updates).toBe(commands.updateContext);
+    return updateContext(commands, context, properties, updater)
+      .then(() => {
+        expect(updates).toEqual(values);
+      });
   });
 
 });
+
+// call it with a function or just a plain object

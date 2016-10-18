@@ -152,44 +152,44 @@ describe('DryadTree', function() {
 
   });
 
-  describe('prepareForAdd can be a function', function() {
-
-    let value = 'value';
-
-    class ParentWithPrepareFn extends Dryad {
-      prepareForAdd() {
-        return {
-          one: (context) => {
-            if (!context) {
-              throw new Error('no context supplied to prepareForAdd inner function');
-            }
-            return value;
-          },
-          two: value
-        };
-      }
-    }
-
-    class Inner extends Dryad {}
-
-    pit('should call fn and save to context', function() {
-      let root = new ParentWithPrepareFn({}, [new Inner({})]);
-      let app = new DryadPlayer(root);
-
-      return app.play().then(() => {
-        let tree = app.tree;
-        let rootId = tree.tree.id;
-        let childId = tree.tree.children[0].id;
-
-        // root context should have one two = 'value'
-        expect(tree.contexts[rootId].one).toBe(value);
-        expect(tree.contexts[rootId].two).toBe(value);
-        // child context should have those also
-        expect(tree.contexts[childId].one).toBe(value);
-        expect(tree.contexts[childId].two).toBe(value);
-      });
-    });
-  });
+  // describe('prepareForAdd can be a function', function() {
+  //
+  //   let value = 'value';
+  //
+  //   class ParentWithPrepareFn extends Dryad {
+  //     prepareForAdd() {
+  //       return {
+  //         one: (context) => {
+  //           if (!context) {
+  //             throw new Error('no context supplied to prepareForAdd inner function');
+  //           }
+  //           return value;
+  //         },
+  //         two: value
+  //       };
+  //     }
+  //   }
+  //
+  //   class Inner extends Dryad {}
+  //
+  //   pit('should call fn and save to context', function() {
+  //     let root = new ParentWithPrepareFn({}, [new Inner({})]);
+  //     let app = new DryadPlayer(root);
+  //
+  //     return app.play().then(() => {
+  //       let tree = app.tree;
+  //       let rootId = tree.tree.id;
+  //       let childId = tree.tree.children[0].id;
+  //
+  //       // root context should have one two = 'value'
+  //       expect(tree.contexts[rootId].one).toBe(value);
+  //       expect(tree.contexts[rootId].two).toBe(value);
+  //       // child context should have those also
+  //       expect(tree.contexts[childId].one).toBe(value);
+  //       expect(tree.contexts[childId].two).toBe(value);
+  //     });
+  //   });
+  // });
 
   describe('collectCommands', function() {
     it('should include properties', function() {

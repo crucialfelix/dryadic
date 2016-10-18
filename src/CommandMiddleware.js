@@ -1,5 +1,4 @@
 /* @flow */
-import * as _ from 'underscore';
 import type CommandNode from './CommandNode';
 
 /**
@@ -30,27 +29,14 @@ export default class CommandMiddleware {
    * when all command results have resolved.
    *
    * @param {CommandNode} commandRoot - The root command node of the tree as collected by DryadTree collectCommands. It contains pointers to the children.
-   * @param {String} actionName - Each node has its context updated after success or failure as:
-   *                            `{state: {[actionName]: true|false[, error: error]}}`
+   * @param {String} stateTransitionName - Each node has its context updated after success or failure as:
+   *                            `{state: {[stateTransitionName]: true|false[, error: error]}}`
    *                            On failure the error will also be stored here for debugging.
    * @param {Function} updateContext - supplied by the DryadPlayer, a function to update the context for a node.
    *
    * @returns {Promise} - resolves when all executed commands have resolved
    */
-  call(commandRoot:CommandNode, actionName:string, updateContext:Function) : Promise<*> {
-    const stack = this._flatten(commandRoot);
-    const promises = stack.map((commandNode:CommandNode) => {
-      return commandNode.call(actionName, this.middlewares, updateContext);
-    });
-    return Promise.all(promises);
-  }
-
-  /**
-   * Given a command object return a flat list of the commands and the childrens' command objects.
-   */
-  _flatten(node:CommandNode) : Array<CommandNode> {
-    return [
-      node
-    ].concat(_.flatten(node.children.map((n:CommandNode) => this._flatten(n)), true));
+  call(commandRoot:CommandNode, stateTransitionName:string, updateContext:Function) : Promise<*> {
+    return commandRoot.call(stateTransitionName, this.middlewares, updateContext);
   }
 }

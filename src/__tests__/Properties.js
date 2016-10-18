@@ -1,9 +1,7 @@
 
 import { invertDryadicProperties } from '../Properties';
 import Dryad from '../Dryad';
-import DryadPlayer from '../DryadPlayer';
 import dryadic from '../dryadic';
-// import { makeApp } from './_testUtils';
 
 
 describe('Properties', function() {
