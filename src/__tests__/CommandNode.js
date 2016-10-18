@@ -5,7 +5,7 @@ import CommandNode, { CALL_ORDER } from '../CommandNode';
 
 describe('CommandNode', function() {
 
-  const middleware = function(commands, context, properties, updateFn) {
+  const middleware = function(commands, context, properties/*, updateFn*/) {
     if (commands.action) {
       return commands.action(context, properties);
     }
@@ -86,7 +86,7 @@ describe('CommandNode', function() {
     }
 
     describe('default order', function() {
-      let [a, b, c, calls] = make();
+      let [a, b, c, calls] = make();  // eslint-disable-line no-unused-vars
 
       return pit('should call a b c', function() {
         return a.call('add', [middleware], _.assign).then(() => {
@@ -96,7 +96,7 @@ describe('CommandNode', function() {
     });
 
     describe('SELF_THEN_CHILDREN', function() {
-      let [a, b, c, calls] = make(CALL_ORDER.SELF_THEN_CHILDREN);
+      let [a, b, c, calls] = make(CALL_ORDER.SELF_THEN_CHILDREN);  // eslint-disable-line no-unused-vars
 
       return pit('should call a b c', function() {
         return a.call('add', [middleware], _.assign).then(() => {
@@ -106,7 +106,7 @@ describe('CommandNode', function() {
     });
 
     describe('PROPERTIES_MODE', function() {
-      let [a, b, c, calls] = make(CALL_ORDER.PROPERTIES_MODE);
+      let [a, b, c, calls] = make(CALL_ORDER.PROPERTIES_MODE);  // eslint-disable-line no-unused-vars
 
       return pit('should call a b c', function() {
         return a.call('add', [middleware], _.assign).then(() => {
