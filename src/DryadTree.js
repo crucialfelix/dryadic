@@ -1,6 +1,8 @@
 /* @flow */
 import * as _ from 'underscore';
 import { invertDryadicProperties } from './Properties';
+import { mapProperties, className } from './utils';
+import CommandNode from './CommandNode';
 import type Dryad from './Dryad';
 import type DryadPlayer from './DryadPlayer';
 
@@ -34,9 +36,7 @@ export default class DryadTree {
     // tree structure
     if (this.root) {
       this.tree = this._makeTree(this.root);
-      this.walk((dryad, context, node:TreeNode) => {
-        this.nodeLookUp.set(node.id, node);
-      });
+      this.walk((node:TreeNode) => this.nodeLookUp.set(node.id, node));
     }
   }
 
@@ -60,7 +60,7 @@ export default class DryadTree {
 
     if (node) {
       memo = fn(node, this.dryads[node.id], this.contexts[node.id], memo);
-      node.children.forEach((child) => {
+      node.children.forEach((child:TreeNode) => {
         memo = this.walk(fn, child, memo);
       });
     }
@@ -72,45 +72,45 @@ export default class DryadTree {
    * Collect a tree of command objects from each node for a given method.
    * eg. 'add' 'remove' 'prepareForAdd'
    *
-   * @param {String} methodName
+   * @param {String} stateTransitionName
    * @param {TreeNode} node - default is the root
-   * @returns {Object}
+   * @returns {CommandNode}
    */
-  collectCommands(methodName:string, node:?TreeNode, player:DryadPlayer) : Object {
-    if (!node) {
-      node = this.tree;
-    }
-
-    if (!node) {
-      // empty tree, empty commands
-      return {};
-    }
+  collectCommands(stateTransitionName:string, node:TreeNode, player:DryadPlayer) : CommandNode {
 
     let dryad = this.dryads[node.id];
     let context = this.contexts[node.id];
 
-    // let commands = dryad[methodName](player);
     let commands:?Object;
-    switch (methodName) {
-      case 'prepareForAdd':
-        commands = dryad.prepareForAdd(player);
-        break;
-      case 'add':
-        commands = dryad.add(player);
-        break;
-      case 'remove':
-        commands = dryad.remove(player);
-        break;
-      default:
-        throw new Error('Unsupported command ${methodName}');
+    try {
+      switch (stateTransitionName) {
+        case 'prepareForAdd':
+          commands = dryad.prepareForAdd(player);
+          break;
+        case 'add':
+          commands = dryad.add(player);
+          break;
+        case 'remove':
+          commands = dryad.remove(player);
+          break;
+        // case 'callCommands'
+        default:
+          throw new Error(`Unsupported command ${stateTransitionName}`);
+      }
+
+    } catch(error) {
+      player.log.log(`Error during collectCommands "${stateTransitionName}" for node:\n`);
+      player.log.log(node);
+      throw error;
     }
 
-    return {
+    return new CommandNode(
       commands,
       context,
-      id: node.id,
-      children: node.children.map((child) => this.collectCommands(methodName, child, player))
-    };
+      dryad.properties,
+      node.id,
+      node.children.map(child => this.collectCommands(stateTransitionName, child, player))
+    );
   }
 
   /**
@@ -120,13 +120,27 @@ export default class DryadTree {
    * This is for runtime execution of commands,
    * called from streams and async processes initiated during Dryad's .add()
    */
-  makeCommandTree(nodeId:string, command:Object) : Object {
-    return {
-      commands: command,
-      context: this.contexts[nodeId],
-      id: nodeId,
-      children: []
-    };
+  makeCommandTree(nodeId:string, commands:Object) : Object {
+    return new CommandNode(
+      commands,
+      this.contexts[nodeId],
+      this.dryads[nodeId].properties,
+      nodeId,
+      []
+    );
+  }
+
+  /**
+   * For any properties that are functions, call them with context to get the 'value'.
+   * These converted/resolved values are passed into the commands at prepareForAdd/add etc.
+   */
+  dryadProperties(nodeId:string) : Object {
+    let dryad = this.dryads[nodeId];
+    let context = this.contexts[nodeId];
+    // invertDryadicProperties replaces Dryads in properties with these accessor functions
+    return mapProperties(dryad.properties, (value) : any => {
+      return _.isFunction(value) ? value(context) : value;
+    });
   }
 
   /**
@@ -138,6 +152,10 @@ export default class DryadTree {
    */
   updateContext(dryadId:string, update:Object) : Object {
     return _.assign(this.contexts[dryadId], update);
+  }
+
+  getContext(dryadId:string) : Object {
+    return this.contexts[dryadId];
   }
 
   /**
@@ -162,16 +180,22 @@ export default class DryadTree {
         return 'removed';
       }
 
-      if (s.prepared) {
+      if (s.prepareForAdd) {
         return 'prepared';
       }
+
+      return `Unknown: ${JSON.stringify(s)}`;
     };
 
     const dbug = (node) => {
+      let context = this.contexts[node.id];
+      let state = context.hasOwnProperty('state') ? context.state : undefined;
       let r = {
+        id: node.id,
         class: this.dryads[node.id].constructor.name,
-        // props: this.dryads[node.id].properties,
-        state: formatState(this.contexts[node.id].state)
+        state: formatState(state)
+        // circular references, cannot print
+        // context: JSON.stringify(this.contexts[node.id], null, 2)
       };
       if (node.children.length) {
         r = _.assign(r, {children: node.children.map(dbug)});
@@ -183,6 +207,26 @@ export default class DryadTree {
       return dbug(this.tree);
     } else {
       return {};
+    }
+  }
+
+  /**
+   * Return the current play graph as a hyperscript document.
+   * Useful for testing and debugging.
+   */
+  hyperscript() : ?Array<mixed> {
+
+    function asH(node) {
+      let dryad = node.dryad;
+      return [
+        className(dryad),
+        dryad.properties,  // may contain accessor functions
+        node.children.map(asH)
+      ]
+    }
+
+    if (this.tree) {
+      return asH(this.tree);
     }
   }
 
@@ -210,21 +254,19 @@ export default class DryadTree {
   }
 
   /**
-   * Creates the expanded play graph as a tree of objects.
+   * Creates the expanded play graph as a tree of TreeNodes.
+   *
    * It is called initially with the root Dryad, then recursively for each child down the tree.
    *
    * - Generates ids for each Dryad
    * - Creates a context for each, storing in this.contexts
    *
-   * Each node in the tree contains:
-   *
-   *    {id:string, dryad:Dryad, type:string, children:Array<Object>}
+   * Each node in the tree contains a TreeNode
    *
    * Dryad classes may use requireParent() and subgraph() to replace themselves
    * with a different graph.
    *
    * So this tree is not a direct mapping of the input graph, it is the expanded play graph.
-   *
    *
    * This method calls itself recursively for children.
    *
@@ -261,6 +303,15 @@ export default class DryadTree {
     }
 
     let id = parentId ? parentId + '.' + childIndex : '0';
+
+    // If any properties are Dryads then clone them into a Properties
+    // dryad with this dryad as it's downstream child. This puts them
+    // higher up in the play graph.
+    let propertiesDryad = invertDryadicProperties(dryad);
+    if (propertiesDryad) {
+      return this._makeTree(propertiesDryad, parentId, `${childIndex}.props`, memo);
+    }
+
     let context = this._createContext(dryad, id, parentId, this.rootContext);
     this.dryads[id] = dryad;
     this.contexts[id] = context;
@@ -268,15 +319,11 @@ export default class DryadTree {
     let makeSubgraph = (dr) => {
       let subgraph = dr.subgraph();
       if (subgraph) {
-        context.subgraph = {};
         let subMemo = _.clone(memo);
         // When and if this dryad appears in its own subgraph
         // then do not call subgraph() on that. It will just
         // do prepare/add/remove on its own self.
         subMemo.skipSubgraphOf = dryad;
-        // objects in subgraph will store references to themselves
-        // in this dryad's context because of this memo flag:
-        subMemo.subgraphOfId = id;
         // if its an array then should have been supplied in a Branch
         if (Array.isArray(subgraph)) {
           throw new Error('Dryad subgraph should return a single Dryad with children. ${dr} ${subgraph}');
@@ -291,16 +338,6 @@ export default class DryadTree {
         // may still be subgraph children to come
         delete memo.skipSubgraphOf;
       } else {
-        // This dryad is in a subgraph of another
-        // store self and context in that parent's context
-        // under the dryad.tag or create a unique id
-        if (memo.subgraphOfId) {
-          this.contexts[memo.subgraphOfId].subgraph[dryad.tag || id] = {
-            dryad: dryad,
-            context: context
-          };
-        }
-
         let subgraph = makeSubgraph(dryad);
         if (subgraph) {
           return subgraph;
@@ -320,49 +357,16 @@ export default class DryadTree {
       id,
       dryad,
       dryadType,
-      // parent: this.contexts[parentId],
-      this._convertObject(dryad.children, id, childIndex, memo)
+      dryad.children.map((child, i) => {
+        return this._makeTree(child, id, i, memo)
+      })
     );
-  }
-
-  /**
-   * private.
-   *
-   * Calls the appropriate method on the dryad.children
-   * Currently it can only be an Array and all the children
-   * must be a Dryad.
-   *
-   * It will be used for including the properties in the tree
-   * for use in diffing. If there are any Dryad in the properties
-   * then the Dryad class is currently responsible for returning those
-   * in subgraph() so they get launched.
-   *
-   * @param {Dryad|Array<Dryad>|Object|String|Number|undefined} obj
-   */
-  _convertObject(obj:any, parentId:string, childIndex:number|string=0, memo:Object={}) : Dryad|Array<Dryad>|Object|string|number {
-    if (obj.isDryad) {
-      return this._makeTree(obj, parentId, childIndex, memo);
-    }
-    if (_.isArray(obj)) {
-      return _.map(obj, (pp, ii) => {
-        return this._convertObject(pp, parentId, ii, memo);
-      });
-    }
-    if (_.isObject(obj)) {
-      return _.mapObject(obj, (pp, key) => {
-        return this._convertObject(pp, parentId, key, memo);
-      });
-    }
-    // should check that its a primitive type
-    return obj;
   }
 }
 
 
-// maybe express as a type
-// type TreeNode = {id:string, dryad:Dryad, dryadType:string, children:Array<TreeNode>}
-
 class TreeNode {
+
   id: string;
   dryad: Dryad;
   dryadType: string;

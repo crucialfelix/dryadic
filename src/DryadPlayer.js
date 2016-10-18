@@ -2,9 +2,12 @@
 import _ from 'underscore';
 import DryadTree from './DryadTree';
 import CommandMiddleware from './CommandMiddleware';
-import {Promise} from 'bluebird';
+import CommandNode from './CommandNode';
+import { Promise } from 'bluebird';
 import hyperscript from './hyperscript';
 import type Dryad from './Dryad';
+import updateContext from './updateContext';
+import run from './run';
 
 /**
  * Manages play/stop/update for a Dryad tree.
@@ -25,12 +28,10 @@ export default class DryadPlayer {
   _errorLogger: Function;
 
   constructor(rootDryad:Dryad, layers:Array<Object>, rootContext:Object = {}) {
-    this.middleware = new CommandMiddleware();
+    this.middleware = new CommandMiddleware([updateContext, run]);
     this.classes = {};
     if (layers) {
-      layers.forEach((layer) => {
-        this.use(layer);
-      });
+      layers.forEach((layer) => this.use(layer));
     }
 
     if (!rootContext.log) {
@@ -39,8 +40,12 @@ export default class DryadPlayer {
 
     this.log = rootContext.log;
 
+    // default logger
     this._errorLogger = (msg, error) => {
       this.log.error(msg, error, error.stack);
+      this.log.error('STATE TREE:');
+      this.log.error(JSON.stringify(this.getDebugState(), null, 2));
+      // and emit error event
     };
 
     this.setRoot(rootDryad, rootContext);
@@ -109,7 +114,24 @@ export default class DryadPlayer {
   }
 
   /**
-   * Plays the current document.
+   * Prepare Dryads in document for play.
+   *
+   * This allocates resources and performs any time consuming async work
+   * required before the Dryads may play.
+   *
+   * Prepare commands may fail by rejecting their Promises.
+   * Unable to allocate resource, required executables do not exist etc.
+   *
+   * .play commands should not fail
+   *
+   */
+  prepare() : Promise<DryadPlayer> {
+    return this.call('prepareForAdd');
+  }
+
+  /**
+   * Prepares and plays the current document.
+   *
    * Optionally updates to a new document.
    *
    * @returns {Promise} - that resolves to `this`
@@ -119,12 +141,10 @@ export default class DryadPlayer {
       this.setRoot(dryad);
     }
 
-    let prepTree = this._collectCommands('prepareForAdd');
-    let addTree = this._collectCommands('add');
-    return this._callPrepare(prepTree)
-      .then(() => this._call(addTree, 'add'))
+    return this.prepare()
+      .then(() => this.call('add'))
       .then(() => this, (error) => {
-        // log the error but continue the Promise chain
+        // Log the error but continue the Promise chain
         this._errorLogger('Failed to play', error);
         return Promise.reject(error);
       });
@@ -134,54 +154,36 @@ export default class DryadPlayer {
    * @returns {Promise} - that resolves to `this`
    */
   stop() : Promise<DryadPlayer> {
-    let removeTree = this._collectCommands('remove');
-    return this._call(removeTree, 'remove')
+    return this.call('remove')
       .then(() => this, (error) => {
         this._errorLogger('Failed to stop', error);
         return Promise.reject(error);
       });
   }
 
-  _collectCommands(commandName:string) : Object {
-    if (this.tree) {
+  _collectCommands(commandName:string) : CommandNode {
+    if (this.tree && this.tree.tree) {
       return this.tree.collectCommands(commandName, this.tree.tree, this);
     }
-    return {};
+    // no-op
+    return new CommandNode({}, {}, {}, '', []);
   }
 
   /**
-   * Execute a prepareForAdd tree of command objects.
-   *
-   * Values of the command objects are functions may return Promises.
-   *
-   * @param {Object} prepTree - id, commands, context, children
-   * @returns {Promise} - resolves when all Promises in the tree have resolved
+   * Collect commands and call for a transition: add|remove|prepareForAdd
    */
-  _callPrepare(prepTree:Object) : Promise {
-    var commands = prepTree.commands || {};
-    if (_.isFunction(commands)) {
-      commands = commands(prepTree.context);
-    }
-    return callAndResolveValues(commands, prepTree.context).then((resolved) => {
-      // save resolved to that node's context
-      // and mark that its $prepared: true for debugging
-      this.updateContext(prepTree.context, _.assign({state: {prepare: true}}, resolved));
-      let childPromises = prepTree.children.map((childPrep) => this._callPrepare(childPrep));
-      return Promise.all(childPromises);
-    }, (error) => {
-      this.updateContext(prepTree.context, {state: {prepare: false, error: error}});
-      return Promise.reject(error);
-    });
+  call(stateTransitionName:string) : Promise<DryadPlayer> {
+    let cmdTree = this._collectCommands(stateTransitionName);
+    return this._call(cmdTree, stateTransitionName).then(() => this);
   }
 
   /**
    * Execute a command tree using middleware.
-   *
-   * @returns {Promise}
    */
-  _call(commandTree:Object, stateTransitionName:string) : Promise {
-    const updateContext = (context, update) => this.tree.updateContext(context.id, update);
-    return this.middleware.call(commandTree, stateTransitionName, updateContext);
+  _call(commandTree:CommandNode, stateTransitionName:string) : Promise {
+    return this.middleware.call(commandTree,
+      stateTransitionName,
+      (context, update) => this.tree.updateContext(context.id, update));
   }
 
   /**
@@ -222,33 +224,11 @@ export default class DryadPlayer {
   getDebugState() : Object {
     return this.tree.getDebugState();
   }
-}
 
-
-/**
- * Returns a new object with each value mapped to the called-and-resolved value.
- *
- * For each key/value in commands object,
- * if value is a function then call it
- * if result is a Promise then resolve it.
- *
- * @private
- * @param {Object} commands
- * @returns {Object}
- */
-function callAndResolveValues(commands:Object, context:Object) : Object {
-  if (_.isEmpty(commands)) {
-    return Promise.resolve({});
+  /**
+   * Get hyperscript representation of current (expanded) play graph
+   */
+  getPlayGraph() : ?Array<mixed> {
+    return this.tree.hyperscript();
   }
-  const keys = _.keys(commands);
-  return Promise.map(keys, (key) => {
-    let value = commands[key];
-    return Promise.resolve(_.isFunction(value) ? value(context) : value);
-  }).then((values) => {
-    let result = {};
-    keys.forEach((key, i) => {
-      result[key] = values[i];
-    });
-    return result;
-  });
 }

@@ -1,5 +1,6 @@
 /* @flow */
 import * as _  from 'underscore';
+import type DryadPlayer from './DryadPlayer';
 
 /**
  * >> A dryad (/ˈdraɪ.æd/; Greek: Δρυάδες, sing.: Δρυάς) is a tree nymph, or female tree spirit, in Greek mythology
@@ -25,7 +26,6 @@ export default class Dryad {
 
   properties: Object;
   children: Array<Dryad>;
-  tag: ?string;
 
   /**
    * Subclasses should not implement constructor.
@@ -34,7 +34,6 @@ export default class Dryad {
   constructor(properties:Object={}, children:Array<Dryad>=[]) {
     this.properties = _.assign({}, this.defaultProperties(), properties || {});
     this.children = children || [];
-    this.tag = null;
   }
 
   /**
@@ -45,17 +44,14 @@ export default class Dryad {
   }
 
   /**
-   * Returns a command object or a function that is called with node context and will return a command object.
+   * Returns a command object that specifies actions that need to be completed
+   * before the Dryad's resource is able to play.
    *
-   * Values of the command objects are functions may return Promises,
-   * and may reject those promises which will halt the .add() operation
-
-   * The function is called with the node's context
-   *
-   * Middleware supplied by layers will match command keys and will be passed the value.
-   * Value is either an object that the middleware uses to do whatever it does (launch things, send messages) or is a function that take context and returns the object.
+   * The most useful command to use here is `updateContext` which when called
+   * will allocate resources, start up servers etc. and then save handles,
+   * pids, node ids etc. into the context for use by .add()
    */
-  prepareForAdd(/*player:DryadPlayer*/) : Object {
+  prepareForAdd(player:DryadPlayer) : Object {  // eslint-disable-line no-unused-vars
     return {};
   }
 
@@ -69,7 +65,7 @@ export default class Dryad {
    *
    * Command middleware for add may return Promises which resolve on success; ie. when the thing is successfully booted, running etc.
    */
-  add(/*player*/) : Object {
+  add(player:DryadPlayer) : Object {  // eslint-disable-line no-unused-vars
     return {};
   }
 
@@ -83,7 +79,7 @@ export default class Dryad {
    *
    * Command middleware for run may return Promises which resolve on success; ie. when the thing is successfully stopped, remove etc.
    */
-  remove(/*player*/) : Object {
+  remove(player:DryadPlayer) : Object {  // eslint-disable-line no-unused-vars
     return {};
   }
 
@@ -150,6 +146,15 @@ export default class Dryad {
    */
   static isDryadSubclass() : boolean {
     return true;
+  }
+
+  /**
+   * When Dryads are used a properties for other Dryads,
+   * they should implement .value to return whatever information
+   * the parent Dryad needs from them.
+   */
+  value(/*context:Object*/) : any {
+    throw new Error(`Subclass responsibility: ${this.constructor.name} should implement 'value()'`);
   }
 
   clone() : Dryad {
