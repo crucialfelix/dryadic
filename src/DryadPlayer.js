@@ -3,9 +3,11 @@ import _ from 'underscore';
 import DryadTree from './DryadTree';
 import CommandMiddleware from './CommandMiddleware';
 import CommandNode from './CommandNode';
-import {Promise} from 'bluebird';
+import { Promise } from 'bluebird';
 import hyperscript from './hyperscript';
 import type Dryad from './Dryad';
+import updateContext from './updateContext';
+import run from './run';
 
 /**
  * Manages play/stop/update for a Dryad tree.
@@ -26,12 +28,10 @@ export default class DryadPlayer {
   _errorLogger: Function;
 
   constructor(rootDryad:Dryad, layers:Array<Object>, rootContext:Object = {}) {
-    this.middleware = new CommandMiddleware();
+    this.middleware = new CommandMiddleware([updateContext, run]);
     this.classes = {};
     if (layers) {
-      layers.forEach((layer) => {
-        this.use(layer);
-      });
+      layers.forEach((layer) => this.use(layer));
     }
 
     if (!rootContext.log) {
