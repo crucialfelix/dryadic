@@ -72,18 +72,18 @@ export default class DryadTree {
    * Collect a tree of command objects from each node for a given method.
    * eg. 'add' 'remove' 'prepareForAdd'
    *
-   * @param {String} methodName
+   * @param {String} stateTransitionName
    * @param {TreeNode} node - default is the root
    * @returns {CommandNode}
    */
-  collectCommands(methodName:string, node:TreeNode, player:DryadPlayer) : CommandNode {
+  collectCommands(stateTransitionName:string, node:TreeNode, player:DryadPlayer) : CommandNode {
 
     let dryad = this.dryads[node.id];
     let context = this.contexts[node.id];
 
     let commands:?Object;
     try {
-      switch (methodName) {
+      switch (stateTransitionName) {
         case 'prepareForAdd':
           commands = dryad.prepareForAdd(player);
           break;
@@ -95,11 +95,11 @@ export default class DryadTree {
           break;
         // case 'callCommands'
         default:
-          throw new Error(`Unsupported command ${methodName}`);
+          throw new Error(`Unsupported command ${stateTransitionName}`);
       }
 
     } catch(error) {
-      player.log.log(`Error during collectCommands "${methodName}" for node:\n`);
+      player.log.log(`Error during collectCommands "${stateTransitionName}" for node:\n`);
       player.log.log(node);
       throw error;
     }
@@ -109,7 +109,7 @@ export default class DryadTree {
       context,
       dryad.properties,
       node.id,
-      node.children.map(child => this.collectCommands(methodName, child, player))
+      node.children.map(child => this.collectCommands(stateTransitionName, child, player))
     );
   }
 
