@@ -75,6 +75,10 @@ export default class CommandNode {
     const execSelf = this.execute(stateTransitionName, middlewares, updateContext);
     const call = (child) => child.call(stateTransitionName, middlewares, updateContext);
 
+    if (!this.commands.callOrder) {
+      return Promise.all([execSelf].concat(this.children.map(call)));
+    }
+
     switch (this.commands.callOrder) {
       case SELF_THEN_CHILDREN:
         return execSelf.then(() => {
@@ -88,7 +92,7 @@ export default class CommandNode {
             .then(() => call(this.children.slice(-1)[0]));
         });
       default:
-        return Promise.all([execSelf].concat(this.children.map(call)));
+        throw new Error(`callOrder mode not recognized: ${this.commands.callOrder}`);
     }
   }
 
