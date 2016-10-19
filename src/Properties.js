@@ -95,9 +95,9 @@ export function invertDryadicProperties(dryad:Dryad) : ?Properties {
       children.push(cloneValue(value));
       indices.push(ci);
 
+      // Here there must be propertiesValues as set by PropertiesOwner
+      // in prepareForAdd. that is the direct parent of this (actual owner)
       return (context:Object) : any => {
-        // Here there must be propertiesValues as set by PropertiesOwner
-        // in prepareForAdd. that is the direct parent of this (actual owner)
         if (!context.propertiesValues) {
           throw new Error(`Missing propertiesValues from context ${context.id}`);
         }

@@ -43,8 +43,7 @@ export default class DryadPlayer {
     // default logger
     this._errorLogger = (msg, error) => {
       this.log.error(msg, error, error.stack);
-      this.log.error('STATE TREE:');
-      this.log.error(JSON.stringify(this.getDebugState(), null, 2));
+      this.dump();
       // and emit error event
     };
 
@@ -230,5 +229,18 @@ export default class DryadPlayer {
    */
   getPlayGraph() : ?Array<mixed> {
     return this.tree.hyperscript();
+  }
+
+  dump() {
+    // TODO: get a better one
+    function replacer(key, value) {
+      if (typeof value === 'function') {
+        return String(value);
+      }
+      return value;
+    }
+
+    this.log.info(JSON.stringify(this.getPlayGraph(), replacer, 2));
+    this.log.error(JSON.stringify(this.getDebugState(), replacer, 2));
   }
 }
