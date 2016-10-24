@@ -1,4 +1,3 @@
-jest.dontMock('../Dryad');
 var Dryad = require('../Dryad').default;
 
 class TypeOne extends Dryad {}

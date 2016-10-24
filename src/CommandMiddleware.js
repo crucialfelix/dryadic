@@ -1,5 +1,5 @@
-import * as _ from 'underscore';
-
+/* @flow */
+import type CommandNode from './CommandNode';
 
 /**
  * Executes command trees using registered middleware.
@@ -11,11 +11,13 @@ import * as _ from 'underscore';
  */
 export default class CommandMiddleware {
 
-  constructor(middlewares=[]) {
+  middlewares: Array<Function>;
+
+  constructor(middlewares:Array<Function>=[]) {
     this.middlewares = middlewares;
   }
 
-  use(middlewares) {
+  use(middlewares:Array<Function>) {
     this.middlewares = this.middlewares.concat(middlewares);
   }
 
@@ -26,36 +28,15 @@ export default class CommandMiddleware {
    * and the entire action (add, remove, update) is considered complete
    * when all command results have resolved.
    *
-   *
-   *
-   * @param {Object} commandRoot - The root command node of the tree as collected by DryadTree collectCommands. It contains pointers to the children.
-   * @param {String} actionName - Each node has its context updated after success or failure as `{state: {actionName: true|false[, error: error]}}` On failure the error will also be stored here for debugging.
+   * @param {CommandNode} commandRoot - The root command node of the tree as collected by DryadTree collectCommands. It contains pointers to the children.
+   * @param {String} stateTransitionName - Each node has its context updated after success or failure as:
+   *                            `{state: {[stateTransitionName]: true|false[, error: error]}}`
+   *                            On failure the error will also be stored here for debugging.
    * @param {Function} updateContext - supplied by the DryadPlayer, a function to update the context for a node.
    *
    * @returns {Promise} - resolves when all executed commands have resolved
    */
-  call(commandRoot, actionName, updateContext) {
-    const stack = this._flatten(commandRoot);
-    const promises = stack.map((cc) => {
-      const calls = this.middlewares.map((middleware) => middleware(cc.commands, cc.context));
-      return Promise.all(calls)
-        .then(() => {
-          updateContext(cc.context, {state: {[actionName]: true}});
-        }, (error) => {
-          // log error
-          updateContext(cc.context, {state: {[actionName]: false, error}});
-          return Promise.reject(error);
-        });
-    });
-    return Promise.all(promises);
-  }
-
-  /**
-   * Given a command object return a flat list of the commands and the childrens' command objects
-   */
-  _flatten(node) {
-    return [
-      {commands: node.commands, context: node.context}
-    ].concat(_.flatten(node.children.map((n) => this._flatten(n)), true));
+  call(commandRoot:CommandNode, stateTransitionName:string, updateContext:Function) : Promise<*> {
+    return commandRoot.call(stateTransitionName, this.middlewares, updateContext);
   }
 }

@@ -1,8 +1,6 @@
 /src
 /lib/__tests__
-.babelrc
 .eslintrc
-.jscsrc
 .node-version
 .travis.yml
 esdoc.json

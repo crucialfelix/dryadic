@@ -1,5 +1,4 @@
 
-jest.dontMock('../../index');
 var index = require('../../index');
 
 describe('"dryadic index"', () => {

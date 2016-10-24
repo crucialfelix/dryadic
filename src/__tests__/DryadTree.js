@@ -1,19 +1,18 @@
-
-jest.dontMock('../Dryad');
-jest.dontMock('../DryadTree');
-jest.dontMock('../DryadPlayer');
-jest.dontMock('../CommandMiddleware');
-jest.dontMock('../hyperscript');
-jest.dontMock('../run');
-jest.dontMock('../layer');
-
+/* @flow */
 var Dryad = require('../Dryad').default;
 var DryadTree = require('../DryadTree').default;
 var DryadPlayer = require('../DryadPlayer').default;
 var layer = require('../layer').default;
+import { makeApp } from './_testUtils';
 
+class TypeOne extends Dryad {
 
-class TypeOne extends Dryad {}
+  // for testing Dryads in properties
+  value() : number {
+    return 1;
+  }
+}
+
 class TypeTwo extends Dryad {}
 
 class HasSubgraph extends Dryad {
@@ -46,10 +45,10 @@ describe('DryadTree', function() {
     expect(Object.keys(tree.dryads).length).toBe(2);
     expect(Object.keys(tree.contexts).length).toBe(2);
 
-    expect(tree.tree.type).toBe('TypeOne');
+    expect(tree.tree.dryadType).toBe('TypeOne');
     expect(tree.tree.children.length).toBe(1);
     expect(tree.tree.children[0].id).toBe('0.0');
-    expect(tree.tree.children[0].type).toBe('TypeTwo');
+    expect(tree.tree.children[0].dryadType).toBe('TypeTwo');
   });
 
   it('should walk', function() {
@@ -64,7 +63,7 @@ describe('DryadTree', function() {
     expect(count).toBe(2);
   });
 
-  it('should create a context with parent as Prototype', function() {
+  it('should create context with parent as Prototype so parent properties are accessible', function() {
     var root = new TypeOne({}, [new TypeTwo()]);
     var tree = new DryadTree(root);
     var rootId = tree.tree.id;
@@ -83,7 +82,7 @@ describe('DryadTree', function() {
     // even though it only appears in the tree once
     expect(Object.keys(tree.dryads).length).toBe(3);
     expect(tree.tree.children.length).toBe(1);
-    expect(tree.tree.children[0].type).toBe('TypeTwo');
+    expect(tree.tree.children[0].dryadType).toBe('TypeTwo');
   });
 
   it('should make tree with subgraph with self as a new child', function() {
@@ -91,9 +90,9 @@ describe('DryadTree', function() {
     var tree = new DryadTree(root);
 
     expect(Object.keys(tree.dryads).length).toBe(3);
-    expect(tree.tree.type).toBe('TypeOne');
+    expect(tree.tree.dryadType).toBe('TypeOne');
     expect(tree.tree.children.length).toBe(1);
-    expect(tree.tree.children[0].type).toBe('HasSubgraphWithSelf');
+    expect(tree.tree.children[0].dryadType).toBe('HasSubgraphWithSelf');
   });
 
   /**
@@ -102,92 +101,115 @@ describe('DryadTree', function() {
    */
   describe('required parent', function() {
 
-    function makeApp() {
-      let app = new DryadPlayer();
-      app.addClass(Child);
-      app.addClass(Parent);
-      return app;
-    }
-
     it('Child should be wrapped in required Parent', function() {
-      let app = makeApp();
+      let app = makeApp([Child, Parent, TypeOne]);
       var root = new Child({}, [new TypeOne()]);
       app.setRoot(root);
       var tree = app.tree;
       expect(tree.tree.children.length).toBe(1);
       let child = tree.tree.children[0];
-      expect(child.type).toBe('Child');
-      expect(child.children[0].type).toBe('TypeOne');
+      expect(child.dryadType).toBe('Child');
+      expect(child.children[0].dryadType).toBe('TypeOne');
     });
 
     it('should not wrap a dryad in a required parent if already present in branch', function() {
-      let app = makeApp();
+      let app = makeApp([Child, Parent, TypeOne]);
       var root = new Parent({}, [new Child({}, [new TypeOne()])]);
       app.setRoot(root);
       var tree = app.tree;
       let child = tree.tree.children[0];
-      expect(child.type).toBe('Child');
-      expect(child.children[0].type).toBe('TypeOne');
+      expect(child.dryadType).toBe('Child');
+      expect(child.children[0].dryadType).toBe('TypeOne');
     });
   });
 
-  describe('prepareForAdd can be a function', function() {
-    var value = 'value';
+  describe('Dryads in properties', function() {
+    let app = makeApp([Child, Parent, TypeOne]);
+    let root = new Parent({key: new TypeOne()}, []);
+    app.setRoot(root);
+    let treeRoot = app.tree.tree;
 
-    class ParentWithPrepareFn extends Dryad {
-      prepareForAdd() {
-        return {
-          one: (context) => {
-            if (!context) {
-              throw new Error('no contex supplied to prepareForAdd inner function');
-            }
-            return value;
-          },
-          two: value
-        };
-      }
-    }
+    it('should invert Dryads in properties as a Properties dryad', function() {
 
-    class Inner extends Dryad {}
+      expect(treeRoot.dryadType).toBe('Properties');
 
-    pit('should call fn and save to context', function() {
-      var root = new ParentWithPrepareFn({}, [new Inner({})]);
-      var app = new DryadPlayer(root);
-      return app.play().then(() => {
-        var tree = app.tree;
-        var rootId = tree.tree.id;
-        var childId = tree.tree.children[0].id;
+      let child = treeRoot.children[0];
+      expect(child.dryadType).toBe('TypeOne');
 
-        // root context should have one two = 'value'
-        expect(tree.contexts[rootId].one).toBe(value);
-        expect(tree.contexts[rootId].two).toBe(value);
-        // child context should have those also
-        expect(tree.contexts[childId].one).toBe(value);
-        expect(tree.contexts[childId].two).toBe(value);
-      });
+      // PropertiesOwner({...}, [Parent])
+      let source = treeRoot.children[1].children[0];
+      expect(source.dryadType).toBe('Parent');
+
+      // returns the value that TypeOne returns
+      let propertyAccessor = source.dryad.properties.key;
+      expect(typeof propertyAccessor).toBe('function');
+      // Cannot read propertiesValues
+      // you need context
+      // let result = propertyAccessor();
+      // expect(result).toBe(1);
     });
+
+
   });
 
-  // describe('collectCommands', function() {
+  // describe('prepareForAdd can be a function', function() {
   //
   //   let value = 'value';
   //
-  //   class Adds extends Dryad {
-  //     add() {
+  //   class ParentWithPrepareFn extends Dryad {
+  //     prepareForAdd() {
   //       return {
-  //         one: () => value
+  //         one: (context) => {
+  //           if (!context) {
+  //             throw new Error('no context supplied to prepareForAdd inner function');
+  //           }
+  //           return value;
+  //         },
+  //         two: value
   //       };
   //     }
   //   }
   //
-  //   it('should collect add commands with extra context', function() {
-  //     let root = new Adds();
+  //   class Inner extends Dryad {}
+  //
+  //   pit('should call fn and save to context', function() {
+  //     let root = new ParentWithPrepareFn({}, [new Inner({})]);
   //     let app = new DryadPlayer(root);
-  //     let callCommand = 'callCommand';
-  //     let ctree = app._collectCommands('add', {callCommand: callCommand});
-  //     expect(ctree.context.callCommand).toBe(callCommand);
+  //
+  //     return app.play().then(() => {
+  //       let tree = app.tree;
+  //       let rootId = tree.tree.id;
+  //       let childId = tree.tree.children[0].id;
+  //
+  //       // root context should have one two = 'value'
+  //       expect(tree.contexts[rootId].one).toBe(value);
+  //       expect(tree.contexts[rootId].two).toBe(value);
+  //       // child context should have those also
+  //       expect(tree.contexts[childId].one).toBe(value);
+  //       expect(tree.contexts[childId].two).toBe(value);
+  //     });
   //   });
   // });
+
+  describe('collectCommands', function() {
+    it('should include properties', function() {
+      let app = makeApp([Child, Parent, TypeOne]);
+      let root = new Parent({key: new TypeOne()}, []);
+      app.setRoot(root);
+
+      // this is the top level command
+      let cmds = app.tree.collectCommands('add', app.tree.tree, app);
+      // get the Parent which is now the the child of the last child of the Properties (the play graph root)
+      // console.log({cmds});
+      let parentCmd = cmds.children[1].children[0];
+      // console.log({parentCmd});
+
+      expect(parentCmd.properties).toBeDefined();
+      expect(typeof parentCmd.properties.key).toBe('function');
+      // that when evaluated with produces the number 1
+      // but only after you have executed the tree
+    });
+  });
 
   describe('makeCommandTree', function() {
     pit('should make a command tree given a single command', function() {
@@ -205,6 +227,68 @@ describe('DryadTree', function() {
       return app._call(ctree).then(() => {
         expect(ran).toBe(true);
       });
+    });
+  });
+
+  describe('updateContext', function() {
+    var tree, dryadId;
+    beforeEach(() => {
+      let root = new Dryad();
+      let app = new DryadPlayer(root, [layer]);
+      tree = app.tree;
+      dryadId = tree.tree.id;
+    });
+
+    it('should set a top level value on context', function() {
+      tree.updateContext(dryadId, {key: 'value'});
+      let c = tree.contexts[dryadId];
+      expect(c.key).toBe('value');
+    });
+
+    it('should set an object', function() {
+      let obj = {
+        sub: 'value'
+      };
+
+      tree.updateContext(dryadId, {obj: obj});
+      let c = tree.contexts[dryadId];
+      expect(c.obj.sub).toBe('value');
+    });
+
+    it('should replace a sub object', function() {
+      let obj = {
+        sub: 'value'
+      };
+
+      tree.updateContext(dryadId, {obj: obj});
+      tree.updateContext(dryadId, {obj: {
+        sub2: 'value2'
+      }});
+
+      let c = tree.contexts[dryadId];
+      expect(c.obj.sub).toBeUndefined();
+      expect(c.obj.sub2).toBe('value2');
+    });
+
+    it('should remove an object if it is set to undefined', function() {
+      /**
+       * Removing a top level object.
+       * Could explicitly delete the key but for now just set it to undefined
+       * if you need to remove something.
+       */
+      let obj = {
+        sub: 'value',
+        sub2: 'value2'
+      };
+      let obj2 = {
+        other: 'thing'
+      };
+
+      tree.updateContext(dryadId, {obj, obj2});
+      tree.updateContext(dryadId, {obj: undefined, obj2});
+      let c = tree.contexts[dryadId];
+      expect(c.obj).toBeUndefined();
+      expect(c.obj2).toBe(obj2);
     });
   });
 });

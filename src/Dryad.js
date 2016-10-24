@@ -1,4 +1,6 @@
+/* @flow */
 import * as _  from 'underscore';
+import type DryadPlayer from './DryadPlayer';
 
 /**
  * >> A dryad (/ˈdraɪ.æd/; Greek: Δρυάδες, sing.: Δρυάς) is a tree nymph, or female tree spirit, in Greek mythology
@@ -22,35 +24,34 @@ import * as _  from 'underscore';
 
 export default class Dryad {
 
+  properties: Object;
+  children: Array<Dryad>;
+
   /**
    * Subclasses should not implement constructor.
    * All Dryad classes take properties and children.
    */
-  constructor(properties={}, children=[]) {
+  constructor(properties:Object={}, children:Array<Dryad>=[]) {
     this.properties = _.assign({}, this.defaultProperties(), properties || {});
     this.children = children || [];
-    this.tag = null;
   }
 
   /**
    * Defaults properties if none are supplied
    */
-  defaultProperties() {
+  defaultProperties() : Object {
     return {};
   }
 
   /**
-   * Returns a command object or a function that is called with node context and will return a command object.
+   * Returns a command object that specifies actions that need to be completed
+   * before the Dryad's resource is able to play.
    *
-   * Values of the command objects are functions may return Promises,
-   * and may reject those promises which will halt the .add() operation
-
-   * The function is called with the node's context
-   *
-   * Middleware supplied by layers will match command keys and will be passed the value.
-   * Value is either an object that the middleware uses to do whatever it does (launch things, send messages) or is a function that take context and returns the object.
+   * The most useful command to use here is `updateContext` which when called
+   * will allocate resources, start up servers etc. and then save handles,
+   * pids, node ids etc. into the context for use by .add()
    */
-  prepareForAdd(/*player*/) {
+  prepareForAdd(player:DryadPlayer) : Object {  // eslint-disable-line no-unused-vars
     return {};
   }
 
@@ -64,7 +65,7 @@ export default class Dryad {
    *
    * Command middleware for add may return Promises which resolve on success; ie. when the thing is successfully booted, running etc.
    */
-  add(/*player*/) {
+  add(player:DryadPlayer) : Object {  // eslint-disable-line no-unused-vars
     return {};
   }
 
@@ -78,7 +79,7 @@ export default class Dryad {
    *
    * Command middleware for run may return Promises which resolve on success; ie. when the thing is successfully stopped, remove etc.
    */
-  remove(/*player*/) {
+  remove(player:DryadPlayer) : Object {  // eslint-disable-line no-unused-vars
     return {};
   }
 
@@ -92,7 +93,7 @@ export default class Dryad {
    * will be called. If subgraph is implemented but it does not include itself then
    * .add / .remove will not be called.
    */
-  subgraph() {}
+  subgraph() : ?Dryad {}
 
   /**
    * When Dryad requires a parent Dryad to be somewhere above it then it
@@ -104,14 +105,14 @@ export default class Dryad {
    *
    * @returns {String|undefined} - class name of required parent Dryad
    */
-  requireParent() {}
+  requireParent() : ?string {}
 
   /**
    * Initial context
    *
    * This dryad's context is also the parent object for all children.
    */
-  initialContext() {
+  initialContext() : Object {
     return {};
   }
 
@@ -119,11 +120,10 @@ export default class Dryad {
    * Context for child; used when creating initial context for a node
    *
    * Note that the child already inherits from this context.
-   *
-   * will deprecate this. nothing is using it
-   * @deprecated
+   * This is for setting things that should be in the child context
+   * and not in the parent context. ie. Things that shadow values in the parent.
    */
-  childContext() {
+  childContext() : Object {
     return {};
   }
 
@@ -133,7 +133,7 @@ export default class Dryad {
    *
    * @returns {Boolean}
    */
-  get isDryad() {
+  get isDryad() : boolean {
     return true;
   }
 
@@ -143,11 +143,20 @@ export default class Dryad {
    *
    * @returns {Boolean}
    */
-  static isDryadSubclass() {
+  static isDryadSubclass() : boolean {
     return true;
   }
 
-  clone() {
+  /**
+   * When Dryads are used a properties for other Dryads,
+   * they should implement .value to return whatever information
+   * the parent Dryad needs from them.
+   */
+  value(/*context:Object*/) : any {
+    throw new Error(`Subclass responsibility: ${this.constructor.name} should implement 'value()'`);
+  }
+
+  clone() : Dryad {
     let dup = new this.constructor();
     let cloneValue = (c) => (c && c.isDryad) ? c.clone() : _.clone(c);
     dup.properties = _.mapObject(this.properties, cloneValue);

@@ -1,22 +1,13 @@
+/* @flow */
 import _ from 'underscore';
 import DryadTree from './DryadTree';
 import CommandMiddleware from './CommandMiddleware';
-import {Promise} from 'bluebird';
+import CommandNode from './CommandNode';
+import { Promise } from 'bluebird';
 import hyperscript from './hyperscript';
-
-// TODO: This needs to be opt-in
-if (process) {
-  process.on('unhandledRejection', function(reason) {
-    console.error('Unhandled Rejection:', reason, reason && reason.stack);
-    throw new Error(reason);
-  });
-} else {
-  Promise.onPossiblyUnhandledRejection((error) => {
-    console.error('Unhandled Rejection', error);
-    throw new Error(error);
-  });
-}
-
+import type Dryad from './Dryad';
+import updateContext from './updateContext';
+import run from './run';
 
 /**
  * Manages play/stop/update for a Dryad tree.
@@ -30,13 +21,17 @@ if (process) {
  */
 export default class DryadPlayer {
 
-  constructor(rootDryad, layers, rootContext = {}) {
-    this.middleware = new CommandMiddleware();
+  middleware: CommandMiddleware;
+  classes: Object;
+  tree: DryadTree;
+  log: any;
+  _errorLogger: Function;
+
+  constructor(rootDryad:Dryad, layers:Array<Object>, rootContext:Object = {}) {
+    this.middleware = new CommandMiddleware([updateContext, run]);
     this.classes = {};
     if (layers) {
-      layers.forEach((layer) => {
-        this.use(layer);
-      });
+      layers.forEach((layer) => this.use(layer));
     }
 
     if (!rootContext.log) {
@@ -45,8 +40,11 @@ export default class DryadPlayer {
 
     this.log = rootContext.log;
 
-    this._errorHandler = (error) => {
-      this.log.error(error.stack);
+    // default logger
+    this._errorLogger = (msg, error) => {
+      this.log.error(msg, error, error.stack);
+      this.dump();
+      // and emit error event
     };
 
     this.setRoot(rootDryad, rootContext);
@@ -59,13 +57,9 @@ export default class DryadPlayer {
    *
    * @param {Dryad} dryad
    */
-  setRoot(dryad, rootContext) {
-    if (dryad) {
-      let classLookup = _.bind(this.getClass, this);
-      this.tree = new DryadTree(this.h(dryad), classLookup, rootContext);
-    } else {
-      this.tree = null;
-    }
+  setRoot(dryad:Dryad|Array<any>|null, rootContext:Object={}) {
+    let classLookup = _.bind(this.getClass, this);
+    this.tree = new DryadTree(dryad ? this.h(dryad) : null, classLookup, rootContext);
   }
 
   /**
@@ -74,7 +68,7 @@ export default class DryadPlayer {
    * @param {Object} hgraph - JSON style object
    * @returns {Dryad}
    */
-  h(hgraph) {
+  h(hgraph:Dryad|Array<any>) : Dryad {
     let classLookup = _.bind(this.getClass, this);
     return hyperscript(hgraph, classLookup);
   }
@@ -84,7 +78,7 @@ export default class DryadPlayer {
    *
    * @param {Object} layer - .classes is a list of Dryad classes, .middleware is a list of middleware functions
    */
-  use(layer) {
+  use(layer:Object) : DryadPlayer {
     this.middleware.use(layer.middleware || []);
     (layer.classes || []).forEach((c) => this.addClass(c));
     return this;
@@ -96,7 +90,7 @@ export default class DryadPlayer {
    *
    * @param {Dryad} dryadClass
    */
-  addClass(dryadClass) {
+  addClass(dryadClass:Class<Dryad>) : void {
     this.classes[dryadClass.name.toLowerCase()] = dryadClass;
   }
 
@@ -110,74 +104,85 @@ export default class DryadPlayer {
    * @param {String} className - case-insensitive
    * @returns {Dryad}
    */
-  getClass(className) {
+  getClass(className:string) : Class<Dryad> {
     let dryadClass = this.classes[className.toLowerCase()];
     if (!dryadClass) {
-      throw new Error(`Dryad class not found: '${className}' in classes: ${Object.keys(this.classes)}`);
+      throw new Error(`Dryad class not found: '${className}' in classes: ${Object.keys(this.classes).join(', ')}`);
     }
     return dryadClass;
   }
 
   /**
+   * Prepare Dryads in document for play.
+   *
+   * This allocates resources and performs any time consuming async work
+   * required before the Dryads may play.
+   *
+   * Prepare commands may fail by rejecting their Promises.
+   * Unable to allocate resource, required executables do not exist etc.
+   *
+   * .play commands should not fail
+   *
+   */
+  prepare() : Promise<DryadPlayer> {
+    return this.call('prepareForAdd');
+  }
+
+  /**
+   * Prepares and plays the current document.
+   *
+   * Optionally updates to a new document.
+   *
    * @returns {Promise} - that resolves to `this`
    */
-  play(dryad) {
+  play(dryad:?Dryad) : Promise<DryadPlayer> {
     if (dryad) {
       this.setRoot(dryad);
     }
-    let prepTree = this._collectCommands('prepareForAdd');
-    let addTree = this._collectCommands('add');
-    return this._callPrepare(prepTree)
-      .then(() => this._call(addTree, 'add'))
-      .then(() => this)
-      .catch(this._errorHandler);
+
+    return this.prepare()
+      .then(() => this.call('add'))
+      .then(() => this, (error) => {
+        // Log the error but continue the Promise chain
+        this._errorLogger('Failed to play', error);
+        return Promise.reject(error);
+      });
   }
 
   /**
    * @returns {Promise} - that resolves to `this`
    */
-  stop() {
-    let removeTree = this._collectCommands('remove');
-    return this._call(removeTree, 'remove').then(() => this).catch(this._errorHandler);
+  stop() : Promise<DryadPlayer> {
+    return this.call('remove')
+      .then(() => this, (error) => {
+        this._errorLogger('Failed to stop', error);
+        return Promise.reject(error);
+      });
   }
 
-  _collectCommands(commandName) {
-    return this.tree.collectCommands(commandName, this.tree.tree, this);
+  _collectCommands(commandName:string) : CommandNode {
+    if (this.tree && this.tree.tree) {
+      return this.tree.collectCommands(commandName, this.tree.tree, this);
+    }
+    // no-op
+    return new CommandNode({}, {}, {}, '', []);
   }
 
   /**
-   * Execute a prepareForAdd tree of command objects.
-   *
-   * Values of the command objects are functions may return Promises.
-   *
-   * @param {Object} prepTree - id, commands, context, children
-   * @returns {Promise} - resolves when all Promises in the tree have resolved
+   * Collect commands and call for a transition: add|remove|prepareForAdd
    */
-  _callPrepare(prepTree) {
-    var commands = prepTree.commands || {};
-    if (_.isFunction(commands)) {
-      commands = commands(prepTree.context);
-    }
-    return callAndResolveValues(commands, prepTree.context).then((resolved) => {
-      // save resolved to that node's context
-      // and mark that its $prepared: true for debugging
-      this.updateContext(prepTree.context, _.assign({state: {prepare: true}}, resolved));
-      let childPromises = prepTree.children.map((childPrep) => this._callPrepare(childPrep));
-      return Promise.all(childPromises);
-    }, (error) => {
-      this.updateContext(prepTree.context, {state: {prepare: false, error: error}});
-      return Promise.reject(error);
-    });
+  call(stateTransitionName:string) : Promise<DryadPlayer> {
+    let cmdTree = this._collectCommands(stateTransitionName);
+    return this._call(cmdTree, stateTransitionName).then(() => this);
   }
 
   /**
    * Execute a command tree using middleware.
-   *
-   * @returns {Promise}
    */
-  _call(commandTree, stateTransitionName) {
-    const updateContext = (context, update) => this.tree.updateContext(context.id, update);
-    return this.middleware.call(commandTree, stateTransitionName, updateContext);
+  _call(commandTree:CommandNode, stateTransitionName:string) : Promise {
+    return this.middleware.call(commandTree,
+      stateTransitionName,
+      (context, update) => this.tree.updateContext(context.id, update));
   }
 
   /**
@@ -190,7 +195,7 @@ export default class DryadPlayer {
    * in response to events, streams etc.
    * eg. spawning synths from an incoming stream of data.
    */
-  callCommand(nodeId, command) {
+  callCommand(nodeId:string, command:Object) : Promise {
     return this._call(this.tree.makeCommandTree(nodeId, command), 'callCommand');
   }
 
@@ -207,7 +212,7 @@ export default class DryadPlayer {
    * @param  {Object} update  updated variables
    * @return {Object}         new context object
    */
-  updateContext(context, update) {
+  updateContext(context:Object, update:Object) : Object {
     return this.tree.updateContext(context.id, update);
   }
 
@@ -215,36 +220,27 @@ export default class DryadPlayer {
    * Get a representation of current state of the tree.
    * Contains add|remove|prepared and may hold errors.
    */
-  getDebugState() {
+  getDebugState() : Object {
     return this.tree.getDebugState();
   }
-}
 
-
-/**
- * Returns a new object with each value mapped to the called-and-resolved value.
- *
- * For each key/value in commands object,
- * if value is a function then call it
- * if result is a Promise then resolve it.
- *
- * @private
- * @param {Object} commands
- * @returns {Object}
- */
-function callAndResolveValues(commands, context) {
-  if (_.isEmpty(commands)) {
-    return Promise.resolve({});
+  /**
+   * Get hyperscript representation of current (expanded) play graph
+   */
+  getPlayGraph() : ?Array<mixed> {
+    return this.tree.hyperscript();
   }
-  const keys = _.keys(commands);
-  return Promise.map(keys, (key) => {
-    let value = commands[key];
-    return Promise.resolve(_.isFunction(value) ? value(context) : value);
-  }).then((values) => {
-    let result = {};
-    keys.forEach((key, i) => {
-      result[key] = values[i];
-    });
-    return result;
-  });
+
+  dump() {
+    // TODO: get a better one
+    function replacer(key, value) {
+      if (typeof value === 'function') {
+        return String(value);
+      }
+      return value;
+    }
+
+    this.log.info(JSON.stringify(this.getPlayGraph(), replacer, 2));
+    this.log.error(JSON.stringify(this.getDebugState(), replacer, 2));
+  }
 }

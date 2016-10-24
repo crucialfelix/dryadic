@@ -1,4 +1,4 @@
-
+/* @flow */
 /**
  * Calls a function, supplying the Dryad's context.
  * May return a Promise for success/failure
@@ -20,8 +20,8 @@
  *   };
  *  }
  */
-export default function run(command, context) {
+export default function run(command:Object, context:Object, properties:Object) : any|Promise<*> {
   if (command.run) {
-    return command.run(context);
+    return command.run(context, properties);
   }
-};
+}
