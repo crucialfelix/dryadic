@@ -109,8 +109,6 @@ describe('DryadPlayer', function() {
   });
 
   describe('setRoot', function() {
-
-
     it('should setRoot', function() {
       player.setRoot(root);
       expect(player.tree).toBeTruthy();

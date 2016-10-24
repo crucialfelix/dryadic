@@ -93,7 +93,7 @@ describe('Properties', function() {
     pit('in remove', function() {
       let p = dryadic(invertDryadicProperties(d));
       return p.play().then(() => {
-        p.stop().then(() => {
+        return p.stop().then(() => {
           expect(propertiesSupplied.remove).toEqual({one: 1});
         });
       });
