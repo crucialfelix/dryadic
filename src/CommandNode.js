@@ -1,5 +1,6 @@
 /* @flow */
 import * as _ from 'underscore';
+import { Promise } from 'bluebird';
 import { mapProperties } from './utils';
 
 export const SELF_THEN_CHILDREN = 'SELF_THEN_CHILDREN';
