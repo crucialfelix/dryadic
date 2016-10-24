@@ -5,8 +5,6 @@ dryadic
 
 ALPHA, work in progress
 
-Dryadic is a micro-framework for managing trees of components across disparate rendering contexts.
-
 >> A dryad (/ˈdraɪ.æd/; Greek: Δρυάδες, sing.: Δρυάς) is a tree nymph, or female tree spirit, in Greek mythology
 
 A Dryad is a component for managing the creation and control of something.
@@ -27,15 +25,11 @@ Compatibility
 
 Works on Node 4+
 
-Source code is written in ES2015 and transpiled with babel.
-
-
 Contribute
 ----------
 
 - Issue Tracker: https://github.com/crucialfelix/dryadic/issues
 - Source Code: https://github.com/crucialfelix/dryadic
-
 
 License
 -------
