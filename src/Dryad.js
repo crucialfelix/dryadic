@@ -120,9 +120,8 @@ export default class Dryad {
    * Context for child; used when creating initial context for a node
    *
    * Note that the child already inherits from this context.
-   *
-   * will deprecate this. nothing is using it
-   * @deprecated
+   * This is for setting things that should be in the child context
+   * and not in the parent context. ie. Things that shadow values in the parent.
    */
   childContext() : Object {
     return {};
