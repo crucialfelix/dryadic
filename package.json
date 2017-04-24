@@ -1,7 +1,7 @@
 {
   "name": "dryadic",
   "description": "Component micro-framework for creative coding",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": "Chris Sattinger <crucialfelix@gmail.com>",
   "contributors": [
     {
@@ -45,9 +45,13 @@
     "postinstall": "node -e \"require('fs').stat('lib', function (e, s) { process.exit(e || !s.isDirectory() ? 1 : 0) })\" || npm run build"
   },
   "jest": {
-    "transform": {".*": "<rootDir>/node_modules/babel-jest"},
+    "transform": {
+      ".*": "<rootDir>/node_modules/babel-jest"
+    },
     "testRegex": "(/__tests__/[a-zA-Z].*|\\.(test|spec))\\.(js|json)$",
-    "roots": ["src"],
+    "roots": [
+      "src"
+    ],
     "moduleFileExtensions": [
       "js",
       "json"
