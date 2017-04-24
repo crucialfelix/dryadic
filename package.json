@@ -63,6 +63,6 @@
     "esnext": true
   },
   "engines": {
-    "node": ">=4 <7"
+    "node": ">=4"
   }
 }
