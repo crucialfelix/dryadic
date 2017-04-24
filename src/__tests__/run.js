@@ -2,7 +2,7 @@
 var run = require('../run').default;
 
 describe('"run" middleware', () => {
-  pit('should evaluate and resolve the return value of commands', () => {
+  it('should evaluate and resolve the return value of commands', () => {
     let ok = false;
     let context = {};
     let properties = {};
@@ -20,7 +20,7 @@ describe('"run" middleware', () => {
     });
   });
 
-  pit('should resolve even with no return value', function() {
+  it('should resolve even with no return value', function() {
     let ok = false;
     let context = {};
     let properties = {};

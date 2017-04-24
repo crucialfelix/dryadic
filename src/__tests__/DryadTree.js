@@ -172,7 +172,7 @@ describe('DryadTree', function() {
   //
   //   class Inner extends Dryad {}
   //
-  //   pit('should call fn and save to context', function() {
+  //   it('should call fn and save to context', function() {
   //     let root = new ParentWithPrepareFn({}, [new Inner({})]);
   //     let app = new DryadPlayer(root);
   //
@@ -212,7 +212,7 @@ describe('DryadTree', function() {
   });
 
   describe('makeCommandTree', function() {
-    pit('should make a command tree given a single command', function() {
+    it('should make a command tree given a single command', function() {
       let root = new Dryad();
       let app = new DryadPlayer(root, [layer]);
       let rootId = app.tree.tree.id;

@@ -3,7 +3,7 @@ var updateContext = require('../updateContext').default;
 
 describe('"updateContext" middleware', () => {
 
-  pit('should update into context', () => {
+  it('should update into context', () => {
     let values = {
       new: 'value'
     };

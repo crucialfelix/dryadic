@@ -76,21 +76,21 @@ describe('Properties', function() {
       propertiesSupplied.remove = null;
     });
 
-    pit('in prepareForAdd', function() {
+    it('in prepareForAdd', function() {
       let p = dryadic(invertDryadicProperties(d));
       return p.prepare().then(() => {
         expect(propertiesSupplied.prepareForAdd).toEqual({one: 1});
       });
     });
 
-    pit('in add', function() {
+    it('in add', function() {
       let p = dryadic(invertDryadicProperties(d));
       return p.play().then(() => {
         expect(propertiesSupplied.add).toEqual({one: 1});
       });
     });
 
-    pit('in remove', function() {
+    it('in remove', function() {
       let p = dryadic(invertDryadicProperties(d));
       return p.play().then(() => {
         return p.stop().then(() => {

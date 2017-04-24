@@ -22,7 +22,7 @@ describe('CommandNode', function() {
       '0',
       []);
 
-    pit('should execute commands', function() {
+    it('should execute commands', function() {
       return n.execute('add', [middleware], updater)
         .then((got) => {
           // undefined because they don't return anything
@@ -88,7 +88,7 @@ describe('CommandNode', function() {
     describe('default order', function() {
       let [a, b, c, calls] = make();  // eslint-disable-line no-unused-vars
 
-      return pit('should call a b c', function() {
+      return it('should call a b c', function() {
         return a.call('add', [middleware], _.assign).then(() => {
           expect(calls).toEqual(['a', 'b', 'c']);
         });
@@ -98,7 +98,7 @@ describe('CommandNode', function() {
     describe('SELF_THEN_CHILDREN', function() {
       let [a, b, c, calls] = make(CALL_ORDER.SELF_THEN_CHILDREN);  // eslint-disable-line no-unused-vars
 
-      return pit('should call a b c', function() {
+      return it('should call a b c', function() {
         return a.call('add', [middleware], _.assign).then(() => {
           expect(calls).toEqual(['a', 'b', 'c']);
         });
@@ -108,7 +108,7 @@ describe('CommandNode', function() {
     describe('PROPERTIES_MODE', function() {
       let [a, b, c, calls] = make(CALL_ORDER.PROPERTIES_MODE);  // eslint-disable-line no-unused-vars
 
-      return pit('should call a b c', function() {
+      return it('should call a b c', function() {
         return a.call('add', [middleware], _.assign).then(() => {
           expect(calls).toEqual(['a', 'b', 'c']);
         });

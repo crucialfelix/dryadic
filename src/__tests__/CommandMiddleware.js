@@ -48,7 +48,7 @@ describe('CommandMiddleware', function() {
   //   });
   // });
 
-  pit('should call a command root stack', function() {
+  it('should call a command root stack', function() {
 
     var updatedContext;
 
@@ -75,7 +75,7 @@ describe('CommandMiddleware', function() {
     });
   });
 
-  pit('should set state error on failure', function() {
+  it('should set state error on failure', function() {
 
     var updatedContext;
     let errorMessage = 'testing deliberate failure in middleware';

@@ -67,13 +67,13 @@ describe('DryadPlayer', function() {
   });
 
   describe('play', function() {
-    pit('should play', function() {
+    it('should play', function() {
       return player.play();
     });
   });
 
   describe('prepare', function() {
-    pit('should update context on prepareForAdd', function() {
+    it('should update context on prepareForAdd', function() {
       return player.prepare().then(() => {
         let rootId = player.tree.tree.id;
         let childId = player.tree.tree.children[0].id;
@@ -92,7 +92,7 @@ describe('DryadPlayer', function() {
     //     player = new DryadPlayer(root);
     //   });
     //
-    //   pit('should update context on prepareForAdd if that returns a function', function() {
+    //   it('should update context on prepareForAdd if that returns a function', function() {
     //     return player.play().then(() => {
     //       let rootId = player.tree.tree.id;
     //       expect(player.tree.contexts[rootId].one).toBe(1);
@@ -103,7 +103,7 @@ describe('DryadPlayer', function() {
   });
 
   describe('stop', function() {
-    pit('should stop', function() {
+    it('should stop', function() {
       return player.stop();
     });
   });
@@ -139,7 +139,7 @@ describe('DryadPlayer', function() {
       }
     }
 
-    pit('should execute a command object via context.callCommand', function() {
+    it('should execute a command object via context.callCommand', function() {
       let r = new CallsRuntimeCommand();
       let p = new DryadPlayer(r, [layer]);
       return p.play().then(() => {
@@ -147,7 +147,7 @@ describe('DryadPlayer', function() {
       });
     });
 
-    pit('should set context.callCommand in children', function() {
+    it('should set context.callCommand in children', function() {
       let r = new Dryad({}, [new CallsRuntimeCommand()]);
       let p = new DryadPlayer(r, [layer]);
       return p.play().then(() => {
@@ -156,7 +156,7 @@ describe('DryadPlayer', function() {
     });
 
     // implement this test when you have implemented .update
-    // pit('should execute context.callCommand for any Dryad added by .add', function() {
+    // it('should execute context.callCommand for any Dryad added by .add', function() {
     //   let root = new CallsRuntimeCommand();
     //   let player = new DryadPlayer(root, [layer]);
     //   return player.play().then(() => {
