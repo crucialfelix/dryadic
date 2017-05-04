@@ -1,5 +1,5 @@
 /* @flow */
-import _ from 'underscore';
+import bind from 'lodash/bind';
 import DryadTree from './DryadTree';
 import CommandMiddleware from './CommandMiddleware';
 import CommandNode from './CommandNode';
@@ -20,18 +20,21 @@ import run from './run';
  * which execute the functionality that the Dryads specify.
  */
 export default class DryadPlayer {
-
   middleware: CommandMiddleware;
   classes: Object;
   tree: DryadTree;
   log: any;
   _errorLogger: Function;
 
-  constructor(rootDryad:Dryad, layers:Array<Object>, rootContext:Object = {}) {
+  constructor(
+    rootDryad: Dryad,
+    layers: Array<Object>,
+    rootContext: Object = {}
+  ) {
     this.middleware = new CommandMiddleware([updateContext, run]);
     this.classes = {};
     if (layers) {
-      layers.forEach((layer) => this.use(layer));
+      layers.forEach(layer => this.use(layer));
     }
 
     if (!rootContext.log) {
@@ -57,9 +60,13 @@ export default class DryadPlayer {
    *
    * @param {Dryad} dryad
    */
-  setRoot(dryad:Dryad|Array<any>|null, rootContext:Object={}) {
-    let classLookup = _.bind(this.getClass, this);
-    this.tree = new DryadTree(dryad ? this.h(dryad) : null, classLookup, rootContext);
+  setRoot(dryad: Dryad | Array<any> | null, rootContext: Object = {}) {
+    let classLookup = bind(this.getClass, this);
+    this.tree = new DryadTree(
+      dryad ? this.h(dryad) : null,
+      classLookup,
+      rootContext
+    );
   }
 
   /**
@@ -68,8 +75,8 @@ export default class DryadPlayer {
    * @param {Object} hgraph - JSON style object
    * @returns {Dryad}
    */
-  h(hgraph:Dryad|Array<any>) : Dryad {
-    let classLookup = _.bind(this.getClass, this);
+  h(hgraph: Dryad | Array<any>): Dryad {
+    let classLookup = bind(this.getClass, this);
     return hyperscript(hgraph, classLookup);
   }
 
@@ -78,9 +85,9 @@ export default class DryadPlayer {
    *
    * @param {Object} layer - .classes is a list of Dryad classes, .middleware is a list of middleware functions
    */
-  use(layer:Object) : DryadPlayer {
+  use(layer: Object): DryadPlayer {
     this.middleware.use(layer.middleware || []);
-    (layer.classes || []).forEach((c) => this.addClass(c));
+    (layer.classes || []).forEach(c => this.addClass(c));
     return this;
   }
 
@@ -90,7 +97,7 @@ export default class DryadPlayer {
    *
    * @param {Dryad} dryadClass
    */
-  addClass(dryadClass:Class<Dryad>) : void {
+  addClass(dryadClass: Class<Dryad>): void {
     this.classes[dryadClass.name.toLowerCase()] = dryadClass;
   }
 
@@ -104,10 +111,12 @@ export default class DryadPlayer {
    * @param {String} className - case-insensitive
    * @returns {Dryad}
    */
-  getClass(className:string) : Class<Dryad> {
+  getClass(className: string): Class<Dryad> {
     let dryadClass = this.classes[className.toLowerCase()];
     if (!dryadClass) {
-      throw new Error(`Dryad class not found: '${className}' in classes: ${Object.keys(this.classes).join(', ')}`);
+      throw new Error(
+        `Dryad class not found: '${className}' in classes: ${Object.keys(this.classes).join(', ')}`
+      );
     }
     return dryadClass;
   }
@@ -124,7 +133,7 @@ export default class DryadPlayer {
    * .play commands should not fail
    *
    */
-  prepare() : Promise<DryadPlayer> {
+  prepare(): Promise<DryadPlayer> {
     return this.call('prepareForAdd');
   }
 
@@ -135,32 +144,35 @@ export default class DryadPlayer {
    *
    * @returns {Promise} - that resolves to `this`
    */
-  play(dryad:?Dryad) : Promise<DryadPlayer> {
+  play(dryad: ?Dryad): Promise<DryadPlayer> {
     if (dryad) {
       this.setRoot(dryad);
     }
 
-    return this.prepare()
-      .then(() => this.call('add'))
-      .then(() => this, (error) => {
+    return this.prepare().then(() => this.call('add')).then(
+      () => this,
+      error => {
         // Log the error but continue the Promise chain
         this._errorLogger('Failed to play', error);
         return Promise.reject(error);
-      });
+      }
+    );
   }
 
   /**
    * @returns {Promise} - that resolves to `this`
    */
-  stop() : Promise<DryadPlayer> {
-    return this.call('remove')
-      .then(() => this, (error) => {
+  stop(): Promise<DryadPlayer> {
+    return this.call('remove').then(
+      () => this,
+      error => {
         this._errorLogger('Failed to stop', error);
         return Promise.reject(error);
-      });
+      }
+    );
   }
 
-  _collectCommands(commandName:string) : CommandNode {
+  _collectCommands(commandName: string): CommandNode {
     if (this.tree && this.tree.tree) {
       return this.tree.collectCommands(commandName, this.tree.tree, this);
     }
@@ -171,7 +183,7 @@ export default class DryadPlayer {
   /**
    * Collect commands and call for a transition: add|remove|prepareForAdd
    */
-  call(stateTransitionName:string) : Promise<DryadPlayer> {
+  call(stateTransitionName: string): Promise<DryadPlayer> {
     let cmdTree = this._collectCommands(stateTransitionName);
     return this._call(cmdTree, stateTransitionName).then(() => this);
   }
@@ -179,10 +191,12 @@ export default class DryadPlayer {
   /**
    * Execute a command tree using middleware.
    */
-  _call(commandTree:CommandNode, stateTransitionName:string) : Promise {
-    return this.middleware.call(commandTree,
+  _call(commandTree: CommandNode, stateTransitionName: string): Promise {
+    return this.middleware.call(
+      commandTree,
       stateTransitionName,
-      (context, update) => this.tree.updateContext(context.id, update));
+      (context, update) => this.tree.updateContext(context.id, update)
+    );
   }
 
   /**
@@ -195,8 +209,11 @@ export default class DryadPlayer {
    * in response to events, streams etc.
    * eg. spawning synths from an incoming stream of data.
    */
-  callCommand(nodeId:string, command:Object) : Promise {
-    return this._call(this.tree.makeCommandTree(nodeId, command), 'callCommand');
+  callCommand(nodeId: string, command: Object): Promise {
+    return this._call(
+      this.tree.makeCommandTree(nodeId, command),
+      'callCommand'
+    );
   }
 
   /**
@@ -212,7 +229,7 @@ export default class DryadPlayer {
    * @param  {Object} update  updated variables
    * @return {Object}         new context object
    */
-  updateContext(context:Object, update:Object) : Object {
+  updateContext(context: Object, update: Object): Object {
     return this.tree.updateContext(context.id, update);
   }
 
@@ -220,14 +237,14 @@ export default class DryadPlayer {
    * Get a representation of current state of the tree.
    * Contains add|remove|prepared and may hold errors.
    */
-  getDebugState() : Object {
+  getDebugState(): Object {
     return this.tree.getDebugState();
   }
 
   /**
    * Get hyperscript representation of current (expanded) play graph
    */
-  getPlayGraph() : ?Array<mixed> {
+  getPlayGraph(): ?Array<mixed> {
     return this.tree.hyperscript();
   }
 

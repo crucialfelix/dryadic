@@ -1,5 +1,5 @@
 /* @flow */
-import * as _ from 'underscore';
+import isFunction from 'lodash/isFunction';
 import { Promise } from 'bluebird';
 import { mapProperties } from './utils';
 
@@ -10,16 +10,20 @@ export const CALL_ORDER = {
   PROPERTIES_MODE: PROPERTIES_MODE
 };
 
-
 export default class CommandNode {
+  commands: Object;
+  context: Object;
+  properties: Object;
+  id: string;
+  children: Array<CommandNode>;
 
-  commands:Object;
-  context:Object;
-  properties:Object;
-  id:string;
-  children:Array<CommandNode>;
-
-  constructor(commands:Object, context:Object, properties:Object, id:string, children:Array<CommandNode>=[]) {
+  constructor(
+    commands: Object,
+    context: Object,
+    properties: Object,
+    id: string,
+    children: Array<CommandNode> = []
+  ) {
     this.commands = commands;
     this.context = context;
     this.properties = properties;
@@ -27,10 +31,11 @@ export default class CommandNode {
     this.children = children;
   }
 
-  callFuncs() : Object {
-    return mapProperties(this.properties, (value) : any => {
-      return _.isFunction(value) ? value(this.context) : value;
-    });
+  callFuncs(): Object {
+    return mapProperties(
+      this.properties,
+      (value: any): any => (isFunction(value) ? value(this.context) : value)
+    );
   }
 
   /**
@@ -70,11 +75,20 @@ export default class CommandNode {
    *
    * Default is this and children in parallel.
    */
-  call(stateTransitionName:string, middlewares:Array<Function>, updateContext:Function) : Promise<*> {
+  call(
+    stateTransitionName: string,
+    middlewares: Array<Function>,
+    updateContext: Function
+  ): Promise<*> {
     // console.log('CommandNode.call', stateTransitionName, this.context.id, this.commands, this.commands.callOrder || 'parallel');
 
-    const execSelf = this.execute(stateTransitionName, middlewares, updateContext);
-    const call = (child) => child.call(stateTransitionName, middlewares, updateContext);
+    const execSelf = this.execute(
+      stateTransitionName,
+      middlewares,
+      updateContext
+    );
+    const call = child =>
+      child.call(stateTransitionName, middlewares, updateContext);
 
     if (!this.commands.callOrder) {
       return Promise.all([execSelf].concat(this.children.map(call)));
@@ -84,37 +98,47 @@ export default class CommandNode {
       case SELF_THEN_CHILDREN:
         return execSelf.then(() => {
           // TODO: remove this return and the tests should fail
-          return Promise.all(this.children.map(call))
+          return Promise.all(this.children.map(call));
         });
       case PROPERTIES_MODE:
         return execSelf.then(() => {
           // the properties dryads
-          return Promise.all(this.children.slice(0, -1).map(call))
-            .then(() => call(this.children.slice(-1)[0]));
+          return Promise.all(this.children.slice(0, -1).map(call)).then(() =>
+            call(this.children.slice(-1)[0])
+          );
         });
       default:
-        throw new Error(`callOrder mode not recognized: ${this.commands.callOrder}`);
+        throw new Error(
+          `callOrder mode not recognized: ${this.commands.callOrder}`
+        );
     }
   }
 
   /**
    * Execute this CommandNode's commands
    */
-  execute(stateTransitionName:string, middlewares:Array<Function>, updateContext:Function) : Promise<*> {
+  execute(
+    stateTransitionName: string,
+    middlewares: Array<Function>,
+    updateContext: Function
+  ): Promise<*> {
     let properties = this.callFuncs();
-    const calls = middlewares.map((middleware:Function) => {
-      return middleware(this.commands, this.context, properties, updateContext)
+    const calls = middlewares.map((middleware: Function) => {
+      return middleware(this.commands, this.context, properties, updateContext);
     });
 
-    return Promise.all(calls)
-      .then(() => {
-        updateContext(this.context, {state: {[stateTransitionName]: true}});
-      }, (error:Error) => {
+    return Promise.all(calls).then(
+      () => {
+        updateContext(this.context, { state: { [stateTransitionName]: true } });
+      },
+      (error: Error) => {
         // log error
-        updateContext(this.context, {state: {[stateTransitionName]: false, error}});
+        updateContext(this.context, {
+          state: { [stateTransitionName]: false, error }
+        });
         error.message = `${error.message} in ${this.context.id}`;
         return Promise.reject(error);
-      });
-
+      }
+    );
   }
 }

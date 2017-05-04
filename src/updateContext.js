@@ -1,5 +1,6 @@
 /* @flow */
-import * as _ from 'underscore';
+import isFunction from 'lodash/isFunction';
+import keys from 'lodash/keys';
 import isPlainObject from 'is-plain-object';
 import { Promise } from 'bluebird';
 
@@ -35,26 +36,31 @@ import { Promise } from 'bluebird';
  *  }
  *
  */
-export default function updateContext(command:Object, context:Object, properties:Object, updater:Function) : Promise {
+export default function updateContext(
+  command: Object,
+  context: Object,
+  properties: Object,
+  updater: Function
+): Promise {
   if (command.updateContext) {
-    let uc:Object = _.isFunction(command.updateContext) ?
-      command.updateContext(context, properties) : command.updateContext;
-    return resolveValues(uc).then((updates) => {
+    let uc: Object = isFunction(command.updateContext)
+      ? command.updateContext(context, properties)
+      : command.updateContext;
+    return resolveValues(uc).then(updates => {
       updater(context, updates);
     });
   }
 }
 
-
-function resolveValues(object:Object) : Promise<Object> {
-  const keys = _.keys(object);
-  return Promise.map(keys, (key) => {
+function resolveValues(object: Object): Promise<Object> {
+  const ks = keys(object);
+  return Promise.map(ks, key => {
     let value = object[key];
     // if is object then go deep
     return Promise.resolve(isPlainObject(value) ? resolveValues(value) : value);
-  }).then((values) => {
+  }).then(values => {
     let result = {};
-    keys.forEach((key, i) => {
+    ks.forEach((key, i) => {
       result[key] = values[i];
     });
     return result;

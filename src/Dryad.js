@@ -1,5 +1,7 @@
 /* @flow */
-import * as _  from 'underscore';
+import assign from 'lodash/assign';
+import clone from 'lodash/clone';
+import mapValues from 'lodash/mapValues';
 import type DryadPlayer from './DryadPlayer';
 
 /**
@@ -21,9 +23,7 @@ import type DryadPlayer from './DryadPlayer';
  * command middleware which is supplied by various Dryadic packages.
  */
 
-
 export default class Dryad {
-
   properties: Object;
   children: Array<Dryad>;
 
@@ -31,15 +31,15 @@ export default class Dryad {
    * Subclasses should not implement constructor.
    * All Dryad classes take properties and children.
    */
-  constructor(properties:Object={}, children:Array<Dryad>=[]) {
-    this.properties = _.assign({}, this.defaultProperties(), properties || {});
+  constructor(properties: Object = {}, children: Array<Dryad> = []) {
+    this.properties = assign({}, this.defaultProperties(), properties || {});
     this.children = children || [];
   }
 
   /**
    * Defaults properties if none are supplied
    */
-  defaultProperties() : Object {
+  defaultProperties(): Object {
     return {};
   }
 
@@ -51,7 +51,8 @@ export default class Dryad {
    * will allocate resources, start up servers etc. and then save handles,
    * pids, node ids etc. into the context for use by .add()
    */
-  prepareForAdd(player:DryadPlayer) : Object {  // eslint-disable-line no-unused-vars
+  // eslint-disable-next-line no-unused-vars
+  prepareForAdd(player: DryadPlayer): Object {
     return {};
   }
 
@@ -65,7 +66,8 @@ export default class Dryad {
    *
    * Command middleware for add may return Promises which resolve on success; ie. when the thing is successfully booted, running etc.
    */
-  add(player:DryadPlayer) : Object {  // eslint-disable-line no-unused-vars
+  // eslint-disable-next-line no-unused-vars
+  add(player: DryadPlayer): Object {
     return {};
   }
 
@@ -79,7 +81,8 @@ export default class Dryad {
    *
    * Command middleware for run may return Promises which resolve on success; ie. when the thing is successfully stopped, remove etc.
    */
-  remove(player:DryadPlayer) : Object {  // eslint-disable-line no-unused-vars
+  // eslint-disable-next-line no-unused-vars
+  remove(player: DryadPlayer): Object {
     return {};
   }
 
@@ -93,7 +96,7 @@ export default class Dryad {
    * will be called. If subgraph is implemented but it does not include itself then
    * .add / .remove will not be called.
    */
-  subgraph() : ?Dryad {}
+  subgraph(): ?Dryad {}
 
   /**
    * When Dryad requires a parent Dryad to be somewhere above it then it
@@ -105,14 +108,14 @@ export default class Dryad {
    *
    * @returns {String|undefined} - class name of required parent Dryad
    */
-  requireParent() : ?string {}
+  requireParent(): ?string {}
 
   /**
    * Initial context
    *
    * This dryad's context is also the parent object for all children.
    */
-  initialContext() : Object {
+  initialContext(): Object {
     return {};
   }
 
@@ -123,7 +126,7 @@ export default class Dryad {
    * This is for setting things that should be in the child context
    * and not in the parent context. ie. Things that shadow values in the parent.
    */
-  childContext() : Object {
+  childContext(): Object {
     return {};
   }
 
@@ -133,7 +136,7 @@ export default class Dryad {
    *
    * @returns {Boolean}
    */
-  get isDryad() : boolean {
+  get isDryad(): boolean {
     return true;
   }
 
@@ -143,7 +146,7 @@ export default class Dryad {
    *
    * @returns {Boolean}
    */
-  static isDryadSubclass() : boolean {
+  static isDryadSubclass(): boolean {
     return true;
   }
 
@@ -152,14 +155,16 @@ export default class Dryad {
    * they should implement .value to return whatever information
    * the parent Dryad needs from them.
    */
-  value(/*context:Object*/) : any {
-    throw new Error(`Subclass responsibility: ${this.constructor.name} should implement 'value()'`);
+  value(/*context:Object*/): any {
+    throw new Error(
+      `Subclass responsibility: ${this.constructor.name} should implement 'value()'`
+    );
   }
 
-  clone() : Dryad {
+  clone(): Dryad {
     let dup = new this.constructor();
-    let cloneValue = (c) => (c && c.isDryad) ? c.clone() : _.clone(c);
-    dup.properties = _.mapObject(this.properties, cloneValue);
+    let cloneValue = (c: any): any => (c && c.isDryad ? c.clone() : clone(c));
+    dup.properties = mapValues(this.properties, cloneValue);
     dup.children = this.children.map(cloneValue);
     return dup;
   }
