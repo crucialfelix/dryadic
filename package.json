@@ -1,7 +1,7 @@
 {
   "name": "dryadic",
   "description": "Component micro-framework for creative coding",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "author": "Chris Sattinger <crucialfelix@gmail.com>",
   "contributors": [
     {
