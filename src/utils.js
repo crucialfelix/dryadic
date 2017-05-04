@@ -1,5 +1,7 @@
 /* @flow */
-import * as _ from 'underscore';
+import forEach from 'lodash/forEach';
+import isArray from 'lodash/isArray';
+import _isObject from 'lodash/isObject';
 import isPlainObject from 'is-plain-object';
 import type Dryad from './Dryad';
 
@@ -10,14 +12,18 @@ import type Dryad from './Dryad';
  * @param {Function} fn - mapping function. args: value, key, deep.dot.notation.key
  * @param {Array} _prefixKeys - for internal use in recursion only
  */
-export function mapProperties(properties:Object, fn:Function, _prefixKeys:Array<string>=[]) : Object {
+export function mapProperties(
+  properties: Object,
+  fn: Function,
+  _prefixKeys: Array<string> = []
+): Object {
   const result = {};
   if (!isObject(properties)) {
     throw new Error(`Invalid type: ${typeof properties}`);
   }
 
-  _.each(properties, (value:any, key:string) => {
-    if (_.isArray(value)) {
+  forEach(properties, (value: any, key: string) => {
+    if (isArray(value)) {
       result[key] = value.map((v, i) => {
         // if object or array then map deeper
         if (isObject(v)) {
@@ -35,34 +41,29 @@ export function mapProperties(properties:Object, fn:Function, _prefixKeys:Array<
   return result;
 }
 
-
-function appendKey(keys:Array<string>, key:string) : Array<string> {
+function appendKey(keys: Array<string>, key: string): Array<string> {
   const out = keys.slice();
   out.push(key);
   return out;
 }
 
-
-function concatKeys(keys:Array<string>) : string {
+function concatKeys(keys: Array<string>): string {
   return keys.join('.');
 }
 
-
-export function isDryad(value:any) : boolean {
-  return _.isObject(value) && (value.isDryad ? true : false);
+export function isDryad(value: any): boolean {
+  return _isObject(value) && (value.isDryad ? true : false);
 }
-
 
 /**
  * Checks if object is a plain {} object
  *
  * Not Dryad, Array, Function, number etc
  */
-export function isObject(value:any) : boolean {
+export function isObject(value: any): boolean {
   return isPlainObject(value);
 }
 
-
-export function className(dryad:Dryad) : string {
+export function className(dryad: Dryad): string {
   return dryad.constructor.name;
 }

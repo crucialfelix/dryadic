@@ -1,7 +1,7 @@
 {
   "name": "dryadic",
   "description": "Component micro-framework for creative coding",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "author": "Chris Sattinger <crucialfelix@gmail.com>",
   "contributors": [
     {
@@ -12,7 +12,7 @@
   "dependencies": {
     "bluebird": "^3.5.0",
     "is-plain-object": "^2.0.1",
-    "underscore": "^1.8.3"
+    "lodash": "^4.17.4"
   },
   "devDependencies": {
     "babel": "^6.23.0",

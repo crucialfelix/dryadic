@@ -1,5 +1,8 @@
 /* @flow */
-import * as _ from 'underscore';
+import isObject from 'lodash/isObject';
+import isArray from 'lodash/isArray';
+import isString from 'lodash/isString';
+import mapValues from 'lodash/mapValues';
 import type Dryad from './Dryad';
 
 /**
@@ -43,18 +46,20 @@ import type Dryad from './Dryad';
  *        Dryad classes. It should throw an error if no Dryad class exists by that name.
  * @returns {Dryad} - the root Dryad
  */
-export default function hyperscript(root:any, lookupClassByNameFn:Function) : Dryad {
-
+export default function hyperscript(
+  root: any,
+  lookupClassByNameFn: Function
+): Dryad {
   if (!root) {
     die(root, 'Got null|undefined.');
   }
 
   // if the thing implements isDryad then the answer must be yes.
   if (root.isDryad) {
-    return (root : Dryad);
+    return (root: Dryad);
   }
 
-  if (!_.isArray(root)) {
+  if (!isArray(root)) {
     die(root, 'Expected Array.');
   }
 
@@ -64,35 +69,38 @@ export default function hyperscript(root:any, lookupClassByNameFn:Function) : Dr
     die(root, 'Null tag');
   }
 
-  if (!(_.isString(tag) || tag.isDryadSubclass)) {
+  if (!(isString(tag) || tag.isDryadSubclass)) {
     die(root, 'Expected tag to be string');
   }
 
   if (children) {
-    if (!_.isObject(properties)) {
+    if (!isObject(properties)) {
       die(root, 'Expected properties to be an Object');
     }
-    if (!_.isArray(children)) {
+    if (!isArray(children)) {
       die(root, 'Expected children to be an Array');
     }
   } else {
     // If 2nd arg is an array then it is the children and there are no properties.
-    if (_.isArray(properties)) {
+    if (isArray(properties)) {
       children = properties;
       properties = {};
     } else {
-      if (properties && (!_.isObject(properties))) {
+      if (properties && !isObject(properties)) {
         die(root, 'Expected properties to be an Object');
       }
     }
   }
 
   // Convert any property value that looks like a hyperscript form to a Dryad
-  properties = _.mapObject(properties || {},
-    (value) => isDryadForm(value) ? hyperscript(value, lookupClassByNameFn) : value);
+  properties = mapValues(
+    properties || {},
+    value =>
+      isDryadForm(value) ? hyperscript(value, lookupClassByNameFn) : value
+  );
 
   // Convert children
-  let childNodes = (children || []).map((child) => {
+  let childNodes = (children || []).map(child => {
     return hyperscript(child, lookupClassByNameFn);
   });
 
@@ -102,12 +110,17 @@ export default function hyperscript(root:any, lookupClassByNameFn:Function) : Dr
   return new DryadClass(properties, childNodes);
 }
 
-
-function isDryadForm(value) : boolean {
-  return _.isArray(value) && value.length <= 3 && _.isString(value[0]) && _.isObject(value[1]);
+function isDryadForm(value): boolean {
+  return (
+    isArray(value) &&
+    value.length <= 3 &&
+    isString(value[0]) &&
+    isObject(value[1])
+  );
 }
 
-
-function die(root, message) {
-  throw new Error(`Bad argument to hyperscript: [${typeof root}] ${root} ${message}`);
+function die(root: any, message: string) {
+  throw new Error(
+    `Bad argument to hyperscript: [${typeof root}] ${root} ${message}`
+  );
 }
