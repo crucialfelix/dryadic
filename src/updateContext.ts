@@ -1,8 +1,7 @@
-/* @flow */
-import isFunction from 'lodash/isFunction';
-import keys from 'lodash/keys';
-import isPlainObject from 'is-plain-object';
-import { Promise } from 'bluebird';
+import isPlainObject from "is-plain-object";
+import isFunction from "lodash/isFunction";
+
+import { Command, Context, Properties, UpdateContext } from "./types";
 
 /**
  * Updates the player's context using DryadTree.updateContext
@@ -36,33 +35,30 @@ import { Promise } from 'bluebird';
  *  }
  *
  */
-export default function updateContext(
-  command: Object,
-  context: Object,
-  properties: Object,
-  updater: Function
-): Promise {
+export default async function updateContext(
+  command: Command,
+  context: Context,
+  properties: Properties,
+  updater: UpdateContext,
+): Promise<void> {
   if (command.updateContext) {
-    let uc: Object = isFunction(command.updateContext)
+    const uc: Context = isFunction(command.updateContext)
       ? command.updateContext(context, properties)
       : command.updateContext;
-    return resolveValues(uc).then(updates => {
-      updater(context, updates);
-    });
+    const updates = await resolveValues(uc);
+    updater(context, updates);
   }
 }
 
-function resolveValues(object: Object): Promise<Object> {
-  const ks = keys(object);
-  return Promise.map(ks, key => {
-    let value = object[key];
-    // if is object then go deep
-    return Promise.resolve(isPlainObject(value) ? resolveValues(value) : value);
-  }).then(values => {
-    let result = {};
-    ks.forEach((key, i) => {
-      result[key] = values[i];
-    });
-    return result;
-  });
+async function resolveValues(object: Context): Promise<Context> {
+  // resolves all values of an object
+  const result = {};
+  for (const key in object) {
+    if (object.hasOwnProperty(key)) {
+      const element = object[key];
+      // if it's an object then resolve it's values
+      result[key] = isPlainObject(element) ? await resolveValues(element) : element;
+    }
+  }
+  return result;
 }

@@ -1,33 +1,29 @@
-
-var updateContext = require('../updateContext').default;
+import updateContext from "../updateContext";
 
 describe('"updateContext" middleware', () => {
-
-  it('should update into context', () => {
-    let values = {
-      new: 'value'
+  it("should update into context", () => {
+    const values = {
+      new: "value",
     };
 
-    let commands = {
+    const commands = {
       updateContext: (/*context*/) => {
         return values;
-      }
+      },
     };
-    let context = {};
-    let properties = {};
-    var updates = null;
+    const context = {};
+    const properties = {};
+    let updates = null;
 
-    let updater = (argContext, argCommand) => {
+    const updater = (argContext, argCommand) => {
       // console.log({argContext, argCommand});
       updates = argCommand;
     };
 
-    return updateContext(commands, context, properties, updater)
-      .then(() => {
-        expect(updates).toEqual(values);
-      });
+    return updateContext(commands, context, properties, updater).then(() => {
+      expect(updates).toEqual(values);
+    });
   });
-
 });
 
 // call it with a function or just a plain object

@@ -1,4 +1,5 @@
-/* @flow */
+import { Command, Context, Properties } from "./types";
+
 /**
  * Calls a function, supplying the Dryad's context.
  * May return a Promise for success/failure
@@ -20,7 +21,9 @@
  *   };
  *  }
  */
-export default function run(command:Object, context:Object, properties:Object) : any|Promise<*> {
+export default function run(command: Command, context: Context, properties: Properties): void | any | Promise<any> {
+  // what is the result used for ?
+  // be all Promise or just await here
   if (command.run) {
     return command.run(context, properties);
   }

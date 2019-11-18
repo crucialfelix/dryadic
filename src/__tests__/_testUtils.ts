@@ -1,8 +1,7 @@
+import DryadPlayer from "../DryadPlayer";
 
-import DryadPlayer from '../DryadPlayer';
-
-export function makeApp(classes=[]) {
-  let app = new DryadPlayer();
-  classes.forEach((c) => app.addClass(c));
+export function makeApp(classes = []): DryadPlayer {
+  const app = new DryadPlayer();
+  classes.forEach(c => app.addClass(c));
   return app;
 }

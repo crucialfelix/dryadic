@@ -1,29 +1,16 @@
-/* @flow */
-import isFunction from 'lodash/isFunction';
-import { Promise } from 'bluebird';
-import { mapProperties } from './utils';
+import isFunction from "lodash/isFunction";
 
-export const SELF_THEN_CHILDREN = 'SELF_THEN_CHILDREN';
-export const PROPERTIES_MODE = 'PROPERTIES_MODE';
-export const CALL_ORDER = {
-  SELF_THEN_CHILDREN: SELF_THEN_CHILDREN,
-  PROPERTIES_MODE: PROPERTIES_MODE
-};
+import { CallOrder, Commands, Context, Middleware, Properties, UpdateContext } from "./types";
+import { mapProperties } from "./utils";
 
 export default class CommandNode {
-  commands: Object;
-  context: Object;
-  properties: Object;
+  commands: Commands;
+  context: Context;
+  properties: Properties;
   id: string;
-  children: Array<CommandNode>;
+  children: CommandNode[];
 
-  constructor(
-    commands: Object,
-    context: Object,
-    properties: Object,
-    id: string,
-    children: Array<CommandNode> = []
-  ) {
+  constructor(commands: Commands, context: Context, properties: Properties, id: string, children: CommandNode[] = []) {
     this.commands = commands;
     this.context = context;
     this.properties = properties;
@@ -31,17 +18,14 @@ export default class CommandNode {
     this.children = children;
   }
 
-  callFuncs(): Object {
-    return mapProperties(
-      this.properties,
-      (value: any): any => (isFunction(value) ? value(this.context) : value)
-    );
+  callFuncs(): Properties {
+    return mapProperties(this.properties, (value: any): any => (isFunction(value) ? value(this.context) : value));
   }
 
   /**
    * Execute this CommandNode and call it's children.
    *
-   * By default this executes and it's children in parallel.
+   * By default this executes it's children in parallel.
    * Each child would also by default execute it's own children
    * in parallel, so the entire command tree will execute in
    * parallel and resolve when the last straggler resolves.
@@ -54,7 +38,7 @@ export default class CommandNode {
    * specify one of several modes of blocking.
    *
    *   {
-   *     callOrder: CALL_ORDER.SELF_THEN_CHILDREN
+   *     callOrder: CallOrder.SELF_THEN_CHILDREN
    *   }
    *
    * The modes are:
@@ -75,70 +59,51 @@ export default class CommandNode {
    *
    * Default is this and children in parallel.
    */
-  call(
-    stateTransitionName: string,
-    middlewares: Array<Function>,
-    updateContext: Function
-  ): Promise<*> {
+  call(stateTransitionName: string, middlewares: Middleware[], updateContext: UpdateContext): Promise<any> {
     // console.log('CommandNode.call', stateTransitionName, this.context.id, this.commands, this.commands.callOrder || 'parallel');
 
-    const execSelf = this.execute(
-      stateTransitionName,
-      middlewares,
-      updateContext
-    );
-    const call = child =>
-      child.call(stateTransitionName, middlewares, updateContext);
+    const execSelf = this.execute(stateTransitionName, middlewares, updateContext);
+    const call = child => child.call(stateTransitionName, middlewares, updateContext);
 
     if (!this.commands.callOrder) {
       return Promise.all([execSelf].concat(this.children.map(call)));
     }
 
     switch (this.commands.callOrder) {
-      case SELF_THEN_CHILDREN:
+      case CallOrder.SELF_THEN_CHILDREN:
         return execSelf.then(() => {
           // TODO: remove this return and the tests should fail
           return Promise.all(this.children.map(call));
         });
-      case PROPERTIES_MODE:
+      case CallOrder.PROPERTIES_MODE:
         return execSelf.then(() => {
           // the properties dryads
-          return Promise.all(this.children.slice(0, -1).map(call)).then(() =>
-            call(this.children.slice(-1)[0])
-          );
+          return Promise.all(this.children.slice(0, -1).map(call)).then(() => call(this.children.slice(-1)[0]));
         });
       default:
-        throw new Error(
-          `callOrder mode not recognized: ${this.commands.callOrder}`
-        );
+        throw new Error(`callOrder mode not recognized: ${this.commands.callOrder}`);
     }
   }
 
   /**
    * Execute this CommandNode's commands
    */
-  execute(
-    stateTransitionName: string,
-    middlewares: Array<Function>,
-    updateContext: Function
-  ): Promise<*> {
-    let properties = this.callFuncs();
-    const calls = middlewares.map((middleware: Function) => {
+  async execute(stateTransitionName: string, middlewares: Middleware[], updateContext: UpdateContext): Promise<void> {
+    const properties = this.callFuncs();
+    const calls = middlewares.map((middleware: Middleware) => {
       return middleware(this.commands, this.context, properties, updateContext);
     });
 
-    return Promise.all(calls).then(
-      () => {
-        updateContext(this.context, { state: { [stateTransitionName]: true } });
-      },
-      (error: Error) => {
-        // log error
-        updateContext(this.context, {
-          state: { [stateTransitionName]: false, error }
-        });
-        error.message = `${error.message} in ${this.context.id}`;
-        return Promise.reject(error);
-      }
-    );
+    try {
+      await Promise.all(calls);
+      updateContext(this.context, { state: { [stateTransitionName]: true } });
+    } catch (error) {
+      // log error
+      updateContext(this.context, {
+        state: { [stateTransitionName]: false, error },
+      });
+      error.message = `${error.message} in ${this.context.id}`;
+      return Promise.reject(error);
+    }
   }
 }

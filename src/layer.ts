@@ -1,11 +1,11 @@
-/* @flow */
-
+import { Layer } from "./types";
 /**
- * Core middleware functionality
+ * Core middleware functionality.
+ * This is empty butmay add default middleware later.
  */
-let middleware:Array<Function> = [];
-
-export default {
-  middleware,
-  classes: []
+const CoreLayer: Layer = {
+  middleware: [],
+  classes: [],
 };
+
+export default CoreLayer;
