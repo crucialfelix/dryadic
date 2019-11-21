@@ -5,6 +5,8 @@
     "target": "es2018",
     "allowSyntheticDefaultImports": true,
     "baseUrl": "src",
+    "rootDir": ".",
+    "outDir": "../lib",
     "composite": true,
     "declaration": true,
     "declarationMap": true,
