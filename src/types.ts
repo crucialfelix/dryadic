@@ -1,6 +1,11 @@
 import Dryad from "./Dryad";
 
-export type DryadType = typeof Dryad;
+/**
+ * A runtime Dryad class
+ */
+export interface DryadType<T extends Dryad = Dryad> {
+  new (properties?: Properties, children?: Dryad[]): T;
+}
 
 export interface Command {
   [key: string]: any;

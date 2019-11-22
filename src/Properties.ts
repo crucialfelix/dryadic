@@ -113,9 +113,11 @@ export function invertDryadicProperties(dryad: Dryad): Properties | void {
     return;
   }
 
-  const owner = dryad.clone();
-  owner.properties = propertyAccessors;
-  owner.children = dryad.children.map(cloneValue);
+  const owner: Dryad = Object.create(dryad, {
+    properties: { value: propertyAccessors },
+    children: { value: dryad.children.map(cloneValue) },
+  });
+
   children.push(new PropertiesOwner({ indices }, [owner]));
 
   return new Properties({}, children);

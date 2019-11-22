@@ -2,7 +2,7 @@ import clone from "lodash/clone";
 import mapValues from "lodash/mapValues";
 
 import DryadPlayer from "./DryadPlayer";
-import { Command, Context } from "./types";
+import { Command, Context, Properties } from "./types";
 
 /**
  * >> A dryad (/ˈdraɪ.æd/; Greek: Δρυάδες, sing.: Δρυάς) is a tree nymph, or female tree spirit, in Greek mythology
@@ -23,7 +23,7 @@ import { Command, Context } from "./types";
  * command middleware which is supplied by various Dryadic packages.
  */
 
-export default class Dryad<P extends object = any> {
+export default class Dryad<P extends Properties = any> {
   properties: P;
   children: Dryad[];
 
@@ -31,7 +31,7 @@ export default class Dryad<P extends object = any> {
    * Subclasses should not implement constructor.
    * All Dryad classes take properties and children.
    */
-  constructor(properties?: P, children: Dryad[] = []) {
+  constructor(properties?: P, children?: Dryad[]) {
     this.properties = Object.assign({}, this.defaultProperties(), properties);
     this.children = children || [];
   }
@@ -165,7 +165,11 @@ export default class Dryad<P extends object = any> {
   clone(): Dryad<P> {
     const properties: P = mapValues(this.properties, cloneValue);
     const children = this.children.map(cloneValue);
-    return new (this.constructor(properties, children))();
+    const cl: Dryad<P> = Object.create(this, {
+      properties: { value: properties },
+      children: { value: children },
+    });
+    return cl;
   }
 }
 

@@ -227,8 +227,8 @@ export default class DryadPlayer {
    * Get a representation of current state of the tree.
    * Contains add|remove|prepared and may hold errors.
    */
-  getDebugState(): DebugState | undefined {
-    return this.tree && this.tree.getDebugState();
+  getDebugState(): DebugState {
+    return this.tree ? this.tree.getDebugState() : {};
   }
 
   /**
