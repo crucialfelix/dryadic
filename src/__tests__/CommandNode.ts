@@ -36,9 +36,9 @@ describe("CommandNode", function() {
      * the sequence of calls is correct.
      */
 
-    function make(callOrder = undefined) {
+    function make(callOrder: CallOrder | undefined = undefined) {
       // action pushes the id to calls
-      const calls = [];
+      const calls: string[] = [];
       // create a function that returns a Promise, resolved after ms delay
       const actionary = ms => {
         return context => {
@@ -57,7 +57,7 @@ describe("CommandNode", function() {
       const a = new CommandNode(
         {
           action: actionary(200),
-          callOrder,
+          ...(callOrder ? { callOrder } : {}),
         },
         { id: "a" },
         {},
@@ -71,7 +71,7 @@ describe("CommandNode", function() {
     describe("default order", function() {
       const { a, calls } = make();
 
-      return it("should call a b c", function() {
+      it("should call a b c", function() {
         return a.call("add", [middleware], assign).then(() => {
           expect(calls).toEqual(["a", "b", "c"]);
         });
@@ -81,7 +81,7 @@ describe("CommandNode", function() {
     describe("SELF_THEN_CHILDREN", function() {
       const { a, calls } = make(CallOrder.SELF_THEN_CHILDREN);
 
-      return it("should call a b c", function() {
+      it("should call a b c", function() {
         return a.call("add", [middleware], assign).then(() => {
           expect(calls).toEqual(["a", "b", "c"]);
         });
@@ -91,7 +91,7 @@ describe("CommandNode", function() {
     describe("PROPERTIES_MODE", function() {
       const { a, calls } = make(CallOrder.PROPERTIES_MODE);
 
-      return it("should call a b c", function() {
+      it("should call a b c", function() {
         return a.call("add", [middleware], assign).then(() => {
           expect(calls).toEqual(["a", "b", "c"]);
         });

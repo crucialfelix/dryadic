@@ -64,6 +64,8 @@ describe("CommandMiddleware", function() {
       if (commands.action) {
         return Promise.reject(new Error(errorMessage));
       }
+      // must middleware always return something?
+      return Promise.resolve(true);
     };
 
     const cm = new CommandMiddleware([middleware]);

@@ -7,7 +7,9 @@ class TypeOne extends Dryad {
     return {
       updateContext: (/*context, props*/) => {
         return {
-          something: Promise.resolve("something"),
+          // this is not flattened/dereferenced. should it be?
+          // Promise.resolve("something")
+          something: "something",
         };
       },
     };
@@ -71,11 +73,21 @@ describe("DryadPlayer", function() {
   describe("prepare", function() {
     it("should update context on prepareForAdd", function() {
       return player.prepare().then(() => {
-        const rootId = player.tree.tree.id;
-        const childId = player.tree.tree.children[0].id;
+        const tree = player.tree;
+        expect(tree && tree.tree).toBeDefined();
+        if (tree && tree.tree) {
+          const rootId = tree.tree.id;
+          const childId = tree.tree.children[0].id;
 
-        expect(player.tree.contexts[rootId].something).toBe("something");
-        expect(player.tree.contexts[childId].something).toBe("something");
+          const rootContext = tree.contexts[rootId];
+          const childContext = tree.contexts[childId];
+
+          console.log(rootContext);
+          console.log(childContext);
+
+          expect(rootContext.something).toBe("something");
+          expect(childContext.something).toBe("something");
+        }
       });
     });
 

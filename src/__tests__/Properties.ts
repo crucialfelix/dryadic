@@ -85,6 +85,7 @@ describe("Properties", function() {
           expect(propertiesSupplied.prepareForAdd).toEqual({ one: 1 });
         });
       }
+      return;
     });
 
     it("in add", function() {
@@ -97,6 +98,7 @@ describe("Properties", function() {
           expect(propertiesSupplied.add).toEqual({ one: 1 });
         });
       }
+      return;
     });
 
     it("in remove", function() {
@@ -111,6 +113,7 @@ describe("Properties", function() {
           });
         });
       }
+      return;
     });
   });
 
@@ -133,12 +136,15 @@ describe("Properties", function() {
       const p = dryadic(s);
       const state = p.getDebugState();
 
-      const properties = state.children[0];
+      const properties = state.children ? state.children[0] : undefined;
       // const valueDryad = properties.children[0];
-      const parent = properties.children[1].children[0];
-
-      const context = p.tree.getContext(parent.id);
-      expect(context.urvalue).toBe(0);
+      const parent = properties ? properties.children[1].children[0] : undefined;
+      expect(properties).toBeDefined();
+      expect(parent).toBeDefined();
+      if (properties && parent) {
+        const context = p.tree ? p.tree.getContext(parent.id) : undefined;
+        expect(context && context.urvalue).toBe(0);
+      }
     });
   });
 });

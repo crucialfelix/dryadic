@@ -51,7 +51,7 @@ describe("mapProperties", function() {
     list: [1, 2, 3],
     // freq: ['synth', {lfo: 3}, []]
   };
-  const longKeys = [];
+  const longKeys: string[] = [];
 
   const setter = (value, key, longKey) => {
     // console.log('setter args', value, key, longKey);
