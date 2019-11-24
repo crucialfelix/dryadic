@@ -1,18 +1,17 @@
-
-
-var Dryad = require('../Dryad').default;
-var DryadPlayer = require('../DryadPlayer').default;
-var layer = require('../layer').default;
+import Dryad from "../Dryad";
+import DryadPlayer from "../DryadPlayer";
+import layer from "../layer";
 
 class TypeOne extends Dryad {
-
   prepareForAdd() {
     return {
       updateContext: (/*context, props*/) => {
         return {
-          something: Promise.resolve('something')
+          // this is not flattened/dereferenced. should it be?
+          // Promise.resolve("something")
+          something: "something",
         };
-      }
+      },
     };
   }
 
@@ -20,7 +19,7 @@ class TypeOne extends Dryad {
     return {
       run: () => {
         return Promise.resolve();
-      }
+      },
     };
   }
 }
@@ -43,49 +42,58 @@ class Child extends Dryad {}
 //   }
 // }
 
-describe('DryadPlayer', function() {
-
-  var root;
-  var player;
+describe("DryadPlayer", function() {
+  let root: Dryad;
+  let player: DryadPlayer;
 
   beforeEach(() => {
     root = new TypeOne({}, [new Child()]);
     player = new DryadPlayer(root);
   });
 
-  describe('constructor', function() {
-    it('should construct', function() {
+  describe("constructor", function() {
+    it("should construct", function() {
       expect(player).toBeTruthy();
     });
   });
 
-  describe('register class', function() {
-    it('should have registered TypeOne', function() {
+  describe("register class", function() {
+    it("should have registered TypeOne", function() {
       player.addClass(TypeOne);
-      expect(player.classes['typeone']).toBeTruthy();
+      expect(player.classes["typeone"]).toBeTruthy();
     });
   });
 
-  describe('play', function() {
-    it('should play', function() {
+  describe("play", function() {
+    it("should play", function() {
       return player.play();
     });
   });
 
-  describe('prepare', function() {
-    it('should update context on prepareForAdd', function() {
+  describe("prepare", function() {
+    it("should update context on prepareForAdd", function() {
       return player.prepare().then(() => {
-        let rootId = player.tree.tree.id;
-        let childId = player.tree.tree.children[0].id;
+        const tree = player.tree;
+        expect(tree && tree.tree).toBeDefined();
+        if (tree && tree.tree) {
+          const rootId = tree.tree.id;
+          const childId = tree.tree.children[0].id;
 
-        expect(player.tree.contexts[rootId].something).toBe('something');
-        expect(player.tree.contexts[childId].something).toBe('something');
+          const rootContext = tree.contexts[rootId];
+          const childContext = tree.contexts[childId];
+
+          console.log(rootContext);
+          console.log(childContext);
+
+          expect(rootContext.something).toBe("something");
+          expect(childContext.something).toBe("something");
+        }
       });
     });
 
     // describe('prepareForAdd with function', function() {
-    //   var root;
-    //   var player;
+    //   const root;
+    //   const player;
     //
     //   beforeEach(() => {
     //     root = new PrepareWithFunction();
@@ -102,54 +110,53 @@ describe('DryadPlayer', function() {
     // });
   });
 
-  describe('stop', function() {
-    it('should stop', function() {
+  describe("stop", function() {
+    it("should stop", function() {
       return player.stop();
     });
   });
 
-  describe('setRoot', function() {
-    it('should setRoot', function() {
+  describe("setRoot", function() {
+    it("should setRoot", function() {
       player.setRoot(root);
       expect(player.tree).toBeTruthy();
     });
   });
 
-  describe('callCommand', function() {
-
+  describe("callCommand", function() {
     let ran = false;
 
     class CallsRuntimeCommand extends Dryad {
       add(pl) {
         return {
-          run: (context) => {
+          run: context => {
             pl.callCommand(context.id, {
               // context === innerContext
-              run: (innerContext) => {
+              run: innerContext => {
                 // should execute this
                 if (context.id !== innerContext.id) {
                   // console.error('context', context, innerContext);
-                  throw new Error('context and innerContext id do not match');
+                  throw new Error("context and innerContext id do not match");
                 }
                 ran = true;
-              }
+              },
             });
-          }
+          },
         };
       }
     }
 
-    it('should execute a command object via context.callCommand', function() {
-      let r = new CallsRuntimeCommand();
-      let p = new DryadPlayer(r, [layer]);
+    it("should execute a command object via context.callCommand", function() {
+      const r = new CallsRuntimeCommand();
+      const p = new DryadPlayer(r, [layer]);
       return p.play().then(() => {
         expect(ran).toBe(true);
       });
     });
 
-    it('should set context.callCommand in children', function() {
-      let r = new Dryad({}, [new CallsRuntimeCommand()]);
-      let p = new DryadPlayer(r, [layer]);
+    it("should set context.callCommand in children", function() {
+      const r = new Dryad({}, [new CallsRuntimeCommand()]);
+      const p = new DryadPlayer(r, [layer]);
       return p.play().then(() => {
         expect(ran).toBe(true);
       });
@@ -157,22 +164,20 @@ describe('DryadPlayer', function() {
 
     // implement this test when you have implemented .update
     // it('should execute context.callCommand for any Dryad added by .add', function() {
-    //   let root = new CallsRuntimeCommand();
-    //   let player = new DryadPlayer(root, [layer]);
+    //   const root = new CallsRuntimeCommand();
+    //   const player = new DryadPlayer(root, [layer]);
     //   return player.play().then(() => {
     //     expect(ran).toBe(true);
     //   });
     //
     // });
-
   });
 
   // it('on prepare should update context of parent so child sees it', function() {
   //   return player.play().then(() => {
-  //     let rootId = player.tree.tree.id;
-  //     let childId = player.tree.tree.children[0].id;
+  //     const rootId = player.tree.tree.id;
+  //     const childId = player.tree.tree.children[0].id;
   //
   //   });
   // });
-
 });

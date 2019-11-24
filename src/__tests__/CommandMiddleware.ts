@@ -1,39 +1,20 @@
-/* @flow */
+import flatten from "lodash/flatten";
 
-import flatten from 'lodash/flatten';
-import CommandNode from '../CommandNode';
-import CommandMiddleware from '../CommandMiddleware';
+import CommandMiddleware from "../CommandMiddleware";
+import CommandNode from "../CommandNode";
 
-describe('CommandMiddleware', function() {
-  var commandNode = new CommandNode(
-    { action: () => 0 },
-    { id: '0' },
-    { key: 'value' },
-    '0',
-    [
-      new CommandNode(
-        { action: () => 1 },
-        { id: '1' },
-        { key: 'value' },
-        '1',
-        []
-      ),
-      new CommandNode({ action: () => 2 }, { id: '2' }, { key: 'value' }, '2', [
-        new CommandNode(
-          { action: () => 3 },
-          { id: '3' },
-          { key: 'value' },
-          '3',
-          []
-        )
-      ])
-    ]
-  );
+describe("CommandMiddleware", function() {
+  const commandNode = new CommandNode({ action: () => 0 }, { id: "0" }, { key: "value" }, "0", [
+    new CommandNode({ action: () => 1 }, { id: "1" }, { key: "value" }, "1", []),
+    new CommandNode({ action: () => 2 }, { id: "2" }, { key: "value" }, "2", [
+      new CommandNode({ action: () => 3 }, { id: "3" }, { key: "value" }, "3", []),
+    ]),
+  ]);
 
   // it('should flatten command objects and their children to a flat list', function() {
-  //   var cm = new CommandMiddleware();
+  //   const cm = new CommandMiddleware();
   //
-  //   var flat = cm._flatten(commandNode);
+  //   const flat = cm._flatten(commandNode);
   //   expect(flat.length).toBe(4);
   //   flat.forEach((f, i) => {
   //     expect(f.commands.action()).toBe(i);
@@ -42,23 +23,24 @@ describe('CommandMiddleware', function() {
   //   });
   // });
 
-  it('should call a command root stack', function() {
-    var updatedContext;
+  it("should call a command root stack", function() {
+    let updatedContext;
 
     function updateContext(context, update) {
       // would write to the store
       updatedContext = update;
+      return updatedContext;
     }
 
-    var middleware = function(commands, context, properties) {
+    const middleware = function(commands, context, properties) {
       if (commands.action) {
         return commands.action(context, properties);
       }
     };
 
-    var cm = new CommandMiddleware([middleware]);
+    const cm = new CommandMiddleware([middleware]);
 
-    return cm.call(commandNode, 'add', updateContext).then(returned => {
+    return cm.call(commandNode, "add", updateContext).then(returned => {
       // 4 undefineds
       // [ undefined, [ undefined ], [ undefined, [ undefined ] ] ]
       // these are the returned results of executing each commandNode showing that it ran it for each of the 4 Dryads
@@ -68,28 +50,30 @@ describe('CommandMiddleware', function() {
     });
   });
 
-  it('should set state error on failure', function() {
-    var updatedContext;
-    let errorMessage = 'testing deliberate failure in middleware';
+  it("should set state error on failure", function() {
+    let updatedContext;
+    const errorMessage = "testing deliberate failure in middleware";
 
     function updateContext(context, update) {
       // would write to the store
       updatedContext = update;
+      return updatedContext;
     }
 
-    var middleware = function(commands /*, context, properties*/) {
+    const middleware = function(commands /*, context, properties*/) {
       if (commands.action) {
         return Promise.reject(new Error(errorMessage));
       }
+      // must middleware always return something?
+      return Promise.resolve(true);
     };
 
-    var cm = new CommandMiddleware([middleware]);
+    const cm = new CommandMiddleware([middleware]);
 
     return new Promise((resolve, reject) => {
-      cm
-        .call(commandNode, 'add', updateContext)
+      cm.call(commandNode, "add", updateContext)
         .then(() => {
-          reject(new Error('middleware should not have resolved'));
+          reject(new Error("middleware should not have resolved"));
         })
         .catch(error => {
           // console.log(error, typeof error, error.message);
@@ -99,7 +83,7 @@ describe('CommandMiddleware', function() {
           // +     "error": [Error: testing deliberate failure in middleware in 3]
           // expect(updatedContext).toEqual({state: {add: false, error: error}});
           expect(updatedContext.state.add).toBe(false);
-          let e = updatedContext.state.error;
+          const e = updatedContext.state.error;
           expect(e).toBeTruthy();
           expect(e.message.indexOf(errorMessage) !== -1).toBe(true);
           // `Error should contain errorMessage: ${e} missing: ${errorMessage}`);

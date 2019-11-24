@@ -1,14 +1,14 @@
-var Dryad = require('../Dryad').default;
+import Dryad from "../Dryad";
 
 class TypeOne extends Dryad {}
 
-describe('Dryad', function() {
-  it('should clone', function() {
-    let a = [1, 2, 3];
-    let child = new TypeOne();
-    let d = new TypeOne({one: 1, two: a}, [child]);
+describe("Dryad", function() {
+  it("should clone", function() {
+    const a = [1, 2, 3];
+    const child = new TypeOne();
+    const d = new TypeOne({ one: 1, two: a }, [child]);
 
-    let cloned = d.clone();
+    const cloned = d.clone();
     expect(cloned.constructor.name).toBe(d.constructor.name);
     expect(cloned.properties !== d.properties).toBe(true);
     expect(cloned.children !== d.children).toBe(true);

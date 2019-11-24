@@ -1,9 +1,13 @@
-/* @flow */
-import forEach from 'lodash/forEach';
-import isArray from 'lodash/isArray';
-import _isObject from 'lodash/isObject';
-import isPlainObject from 'is-plain-object';
-import type Dryad from './Dryad';
+import forEach from "lodash/forEach";
+import isArray from "lodash/isArray";
+import _isObject from "lodash/isObject";
+import isPlainObject from "is-plain-object";
+import Dryad from "./Dryad";
+import { Properties } from "./types";
+
+export type PropertyValueMapFunction = (value: any, key: string, path: string) => any;
+
+type Key = string;
 
 /**
  * Deep map Dryad property object using a function
@@ -13,16 +17,16 @@ import type Dryad from './Dryad';
  * @param {Array} _prefixKeys - for internal use in recursion only
  */
 export function mapProperties(
-  properties: Object,
-  fn: Function,
-  _prefixKeys: Array<string> = []
-): Object {
-  const result = {};
+  properties: Properties,
+  fn: PropertyValueMapFunction,
+  _prefixKeys: Key[] = [],
+): Properties {
+  const result: Properties = {};
   if (!isObject(properties)) {
     throw new Error(`Invalid type: ${typeof properties}`);
   }
 
-  forEach(properties, (value: any, key: string) => {
+  forEach(properties, (value: any, key: Key) => {
     if (isArray(value)) {
       result[key] = value.map((v, i) => {
         // if object or array then map deeper
@@ -41,18 +45,19 @@ export function mapProperties(
   return result;
 }
 
-function appendKey(keys: Array<string>, key: string): Array<string> {
+function appendKey(keys: Key[], key: Key): Key[] {
+  // out? like SynthDef out?
   const out = keys.slice();
   out.push(key);
   return out;
 }
 
-function concatKeys(keys: Array<string>): string {
-  return keys.join('.');
+function concatKeys(keys: Key[]): string {
+  return keys.join(".");
 }
 
 export function isDryad(value: any): boolean {
-  return _isObject(value) && (value.isDryad ? true : false);
+  return _isObject(value) && value instanceof Dryad;
 }
 
 /**

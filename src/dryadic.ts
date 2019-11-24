@@ -1,7 +1,7 @@
-/* @flow */
-import DryadPlayer from './DryadPlayer';
-import layer from './layer';
-import type Dryad from './Dryad';
+import DryadPlayer from "./DryadPlayer";
+import CoreLayer from "./layer";
+import Dryad from "./Dryad";
+import { Context, Layer } from "./types";
 
 /**
  * Short cut to create a DryadPlayer from a root Dryad
@@ -12,6 +12,6 @@ import type Dryad from './Dryad';
  * @param {Object} rootContext - optional context to supply such as log: winston logger
  * @returns {DryadPlayer}
  */
-export default function dryadic(dryad:Dryad, moreLayers:Array<Object>=[], rootContext:Object={}) : DryadPlayer {
-  return new DryadPlayer(dryad, [layer].concat(moreLayers), rootContext);
+export default function dryadic(dryad: Dryad, moreLayers: Layer[] = [], rootContext: Context = {}): DryadPlayer {
+  return new DryadPlayer(dryad, [CoreLayer, ...moreLayers], rootContext);
 }
