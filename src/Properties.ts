@@ -20,27 +20,33 @@
  * compile what it needs to before the Synth needs to use the result.
  */
 import clone from "lodash/clone";
+
+import { CallOrder } from "./CommandNode";
 import Dryad from "./Dryad";
-import { mapProperties, isDryad, className } from "./utils";
 import DryadPlayer from "./DryadPlayer";
-import { CallOrder, Context, Commands } from "./types";
+import { Command, Context } from "./types";
+import { className, isDryad, mapProperties } from "./utils";
 
 /**
  * Parent wrapper whose children are the properties and the PropertiesOwner as siblings.
  */
 export default class Properties extends Dryad {
-  prepareForAdd(): Commands {
+  prepareForAdd(): Command {
     return {
       callOrder: CallOrder.PROPERTIES_MODE,
     };
   }
 }
 
+interface PropertiesOwnerProperties {
+  indices: number[];
+}
+
 /**
  * Object that holds the owner - the Dryad that had Dryads in it's .properties
  */
-export class PropertiesOwner extends Dryad {
-  prepareForAdd(player: DryadPlayer): Commands {
+export class PropertiesOwner extends Dryad<PropertiesOwnerProperties> {
+  prepareForAdd(player: DryadPlayer): Command {
     return {
       callOrder: CallOrder.SELF_THEN_CHILDREN,
       updateContext: (context: Context) => {

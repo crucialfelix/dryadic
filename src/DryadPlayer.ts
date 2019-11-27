@@ -1,11 +1,11 @@
 import CommandMiddleware from "./CommandMiddleware";
 import CommandNode from "./CommandNode";
-import Dryad from "./Dryad";
+import Dryad, { DryadType } from "./Dryad";
 import DryadTree, { DebugState } from "./DryadTree";
 import hyperscript from "./hyperscript";
 import run from "./run";
+import { Command, Context, HyperScript, Layer, Middleware } from "./types";
 import updateContext from "./updateContext";
-import { Layer, Context, DryadType, Commands, HyperScript } from "./types";
 
 interface ClassTable {
   [className: string]: DryadType;
@@ -30,7 +30,7 @@ export default class DryadPlayer {
   _errorLogger: Function;
 
   constructor(rootDryad: Dryad | null = null, layers: Layer[] = [], rootContext: Context = {}) {
-    this.middleware = new CommandMiddleware([updateContext, run]);
+    this.middleware = new CommandMiddleware([updateContext as Middleware, run as Middleware]);
     this.classes = {};
     if (layers) {
       layers.forEach(layer => this.use(layer));
@@ -184,9 +184,9 @@ export default class DryadPlayer {
    */
   async _call(commandTree: CommandNode, stateTransitionName: string): Promise<void> {
     if (this.tree) {
-      await this.middleware.call(commandTree, stateTransitionName, (context, update) =>
-        this.tree ? this.tree.updateContext(context.id, update) : context,
-      );
+      await this.middleware.call(commandTree, stateTransitionName, (context, update) => {
+        return this.tree ? this.tree.updateContext(context.id, update) : context;
+      });
     }
   }
 
@@ -200,7 +200,7 @@ export default class DryadPlayer {
    * in response to events, streams etc.
    * eg. spawning synths from an incoming stream of data.
    */
-  async callCommand(nodeId: string, command: Commands): Promise<void> {
+  async callCommand(nodeId: string, command: Command): Promise<void> {
     if (this.tree) {
       await this._call(this.tree.makeCommandTree(nodeId, command), "callCommand");
     }

@@ -1,7 +1,7 @@
 import { Layer } from "./types";
 /**
  * Core middleware functionality.
- * This is empty butmay add default middleware later.
+ * This is empty but may add default middleware later.
  */
 const CoreLayer: Layer = {
   middleware: [],

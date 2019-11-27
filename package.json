@@ -33,7 +33,11 @@
     "type": "git",
     "url": "git://github.com/crucialfelix/dryadic"
   },
-  "main": "index",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "directories": {
+    "lib": "lib"
+  },
   "scripts": {
     "test": "jest && npm run lint",
     "lint": "eslint --ext .ts src",

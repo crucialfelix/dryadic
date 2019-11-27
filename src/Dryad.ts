@@ -1,5 +1,6 @@
 import clone from "lodash/clone";
 import mapValues from "lodash/mapValues";
+import isPlainObject from "is-plain-object";
 
 import DryadPlayer from "./DryadPlayer";
 import { Command, Context, Properties } from "./types";
@@ -23,17 +24,31 @@ import { Command, Context, Properties } from "./types";
  * command middleware which is supplied by various Dryadic packages.
  */
 
-export default class Dryad<P extends Properties = any> {
+export default class Dryad<P = Properties> {
   properties: P;
-  children: Dryad[];
+  children: Dryad[] = [];
 
   /**
    * Subclasses should not implement constructor.
    * All Dryad classes take properties and children.
    */
   constructor(properties?: P, children?: Dryad[]) {
+    if (properties && !isPlainObject(properties)) {
+      throw new TypeError(
+        `${
+          this.constructor.name
+        } properties should be an object, but is typeof '${typeof properties}': ${JSON.stringify(properties)}`,
+      );
+    }
     this.properties = Object.assign({}, this.defaultProperties(), properties);
     this.children = children || [];
+    if (!Array.isArray(this.children)) {
+      throw new TypeError(
+        `${this.constructor.name} children should be an Array, but is '${typeof this.children}': ${JSON.stringify(
+          this.children,
+        )}`,
+      );
+    }
   }
 
   /**
@@ -109,8 +124,8 @@ export default class Dryad<P extends Properties = any> {
    *
    * @returns {String|undefined} - class name of required parent Dryad
    */
-  requireParent(): string | null {
-    return null;
+  requireParent(): string | void {
+    // return null;
   }
 
   /**
@@ -154,7 +169,7 @@ export default class Dryad<P extends Properties = any> {
   }
 
   /**
-   * When Dryads are used a properties for other Dryads,
+   * When Dryads are used as properties for other Dryads,
    * they should implement .value to return whatever information
    * the parent Dryad needs from them.
    */
@@ -163,7 +178,7 @@ export default class Dryad<P extends Properties = any> {
   }
 
   clone(): Dryad<P> {
-    const properties: P = mapValues(this.properties, cloneValue);
+    const properties: P = mapValues(this.properties as any, cloneValue);
     const children = this.children.map(cloneValue);
     const cl: Dryad<P> = Object.create(this, {
       properties: { value: properties },
@@ -171,6 +186,13 @@ export default class Dryad<P extends Properties = any> {
     });
     return cl;
   }
+}
+
+/**
+ * A Dryad class (not an instance)
+ */
+export interface DryadType<P = {}> {
+  new (properties?: P, children?: Dryad[]): Dryad<P>;
 }
 
 /**
