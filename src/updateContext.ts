@@ -4,6 +4,8 @@ import isFunction from "lodash/isFunction";
 import { Command, Context, Properties, UpdateContext } from "./types";
 
 /**
+ * updateContext Middleware
+ *
  * Updates the player's context using DryadTree.updateContext
  *
  * Usage:
@@ -57,7 +59,7 @@ async function resolveValues(object: Context): Promise<Context> {
     if (object.hasOwnProperty(key)) {
       const element = object[key];
       // if it's an object then resolve it's values
-      result[key] = isPlainObject(element) ? await resolveValues(element) : element;
+      result[key] = isPlainObject(element) ? await resolveValues(element) : await Promise.resolve(element);
     }
   }
   return result;
