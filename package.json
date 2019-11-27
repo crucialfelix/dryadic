@@ -1,7 +1,7 @@
 {
   "name": "dryadic",
-  "description": "Component micro-framework for creative coding",
-  "version": "0.3.2",
+  "description": "Declarative, reactive orchestration framework for Creative Coding",
+  "version": "1.0.0",
   "author": "Chris Sattinger <crucialfelix@gmail.com>",
   "contributors": [
     {
