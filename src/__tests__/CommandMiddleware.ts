@@ -1,5 +1,3 @@
-import flatten from "lodash/flatten";
-
 import CommandMiddleware from "../CommandMiddleware";
 import CommandNode from "../CommandNode";
 
@@ -40,11 +38,12 @@ describe("CommandMiddleware", function() {
 
     const cm = new CommandMiddleware([middleware]);
 
-    return cm.call(commandNode, "add", updateContext).then(returned => {
+    // this was a change: no longer returning anything from call.
+    return cm.call(commandNode, "add", updateContext).then(() => {
       // 4 undefineds
       // [ undefined, [ undefined ], [ undefined, [ undefined ] ] ]
       // these are the returned results of executing each commandNode showing that it ran it for each of the 4 Dryads
-      expect(flatten(returned).length).toBe(4);
+      // expect(flatten(returned).length).toBe(4);
       // state was marked as updated
       expect(updatedContext).toEqual({ state: { add: true } });
     });
@@ -60,12 +59,10 @@ describe("CommandMiddleware", function() {
       return updatedContext;
     }
 
-    const middleware = function(commands /*, context, properties*/) {
+    const middleware = (commands /*, context, properties*/): void | Promise<void> => {
       if (commands.action) {
         return Promise.reject(new Error(errorMessage));
       }
-      // must middleware always return something?
-      return Promise.resolve(true);
     };
 
     const cm = new CommandMiddleware([middleware]);

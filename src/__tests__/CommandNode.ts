@@ -1,8 +1,7 @@
 import assign from "lodash/assign";
 import delay from "lodash/delay";
 
-import CommandNode from "../CommandNode";
-import { CallOrder } from "../types";
+import CommandNode, { CallOrder } from "../CommandNode";
 
 describe("CommandNode", function() {
   const middleware = function(commands, context, properties /*, updateFn*/) {

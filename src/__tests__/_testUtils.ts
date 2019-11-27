@@ -1,5 +1,5 @@
 import DryadPlayer from "../DryadPlayer";
-import { DryadType } from "../types";
+import { DryadType } from "../Dryad";
 
 export function makeApp(classes: DryadType[] = []): DryadPlayer {
   const app = new DryadPlayer();

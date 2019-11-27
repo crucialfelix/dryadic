@@ -8,8 +8,8 @@ class TypeOne extends Dryad {
       updateContext: (/*context, props*/) => {
         return {
           // this is not flattened/dereferenced. should it be?
-          // Promise.resolve("something")
-          something: "something",
+          //         something: Promise { 'something' },
+          something: Promise.resolve("something"),
         };
       },
     };
