@@ -9,7 +9,7 @@ import { mapProperties, className } from "./utils";
 import CommandNode from "./CommandNode";
 import Dryad from "./Dryad";
 import DryadPlayer, { GetClassFn } from "./DryadPlayer";
-import { Context, Command, Properties, Commands, HyperScript } from "./types";
+import { Context, Command, Properties, HyperScript } from "./types";
 
 interface Memo {
   seenTypes?: string[];
@@ -137,7 +137,7 @@ export default class DryadTree {
    * This is for runtime execution of commands,
    * called from streams and async processes initiated during Dryad's .add()
    */
-  makeCommandTree(nodeId: string, commands: Commands): CommandNode {
+  makeCommandTree(nodeId: string, commands: Command): CommandNode {
     return new CommandNode(commands, this.contexts[nodeId], this.dryads[nodeId].properties, nodeId, []);
   }
 

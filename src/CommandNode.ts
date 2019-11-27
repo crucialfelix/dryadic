@@ -1,16 +1,21 @@
 import isFunction from "lodash/isFunction";
 
-import { CallOrder, Commands, Context, Middleware, Properties, UpdateContext } from "./types";
+import { Command, Context, Middleware, Properties, UpdateContext } from "./types";
 import { mapProperties } from "./utils";
 
+export const enum CallOrder {
+  SELF_THEN_CHILDREN = "SELF_THEN_CHILDREN",
+  PROPERTIES_MODE = "PROPERTIES_MODE",
+}
+
 export default class CommandNode {
-  commands: Commands;
+  commands: Command;
   context: Context;
   properties: Properties;
   id: string;
   children: CommandNode[];
 
-  constructor(commands: Commands, context: Context, properties: Properties, id: string, children: CommandNode[] = []) {
+  constructor(commands: Command, context: Context, properties: Properties, id: string, children: CommandNode[] = []) {
     this.commands = commands;
     this.context = context;
     this.properties = properties;
@@ -59,28 +64,30 @@ export default class CommandNode {
    *
    * Default is this and children in parallel.
    */
-  call(stateTransitionName: string, middlewares: Middleware[], updateContext: UpdateContext): Promise<any> {
+  async call(stateTransitionName: string, middlewares: Middleware[], updateContext: UpdateContext): Promise<void> {
     // console.log('CommandNode.call', stateTransitionName, this.context.id, this.commands, this.commands.callOrder || 'parallel');
 
     const execSelf = this.execute(stateTransitionName, middlewares, updateContext);
-    const call = child => child.call(stateTransitionName, middlewares, updateContext);
-
-    if (!this.commands.callOrder) {
-      return Promise.all([execSelf].concat(this.children.map(call)));
-    }
+    const call = (child: CommandNode): Promise<void> => {
+      return child.call(stateTransitionName, middlewares, updateContext);
+    };
 
     switch (this.commands.callOrder) {
       case CallOrder.SELF_THEN_CHILDREN:
-        return execSelf.then(() => {
-          // TODO: remove this return and the tests should fail
-          return Promise.all(this.children.map(call));
-        });
+        await execSelf;
+        await Promise.all(this.children.map(call));
+        return;
       case CallOrder.PROPERTIES_MODE:
-        return execSelf.then(() => {
-          // the properties dryads
-          return Promise.all(this.children.slice(0, -1).map(call)).then(() => call(this.children.slice(-1)[0]));
-        });
+        await execSelf;
+        // the properties dryads
+        await Promise.all(this.children.slice(0, -1).map(call)).then(() => call(this.children.slice(-1)[0]));
+        return;
       default:
+        if (!this.commands.callOrder) {
+          await Promise.all([execSelf].concat(this.children.map(call)));
+          return;
+        }
+
         throw new Error(`callOrder mode not recognized: ${this.commands.callOrder}`);
     }
   }

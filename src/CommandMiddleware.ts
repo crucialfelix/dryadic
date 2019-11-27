@@ -35,7 +35,7 @@ export default class CommandMiddleware {
    *
    * @returns {Promise} - resolves when all executed commands have resolved
    */
-  call(commandRoot: CommandNode, stateTransitionName: string, updateContext: UpdateContext): Promise<any> {
-    return commandRoot.call(stateTransitionName, this.middlewares, updateContext);
+  async call(commandRoot: CommandNode, stateTransitionName: string, updateContext: UpdateContext): Promise<void> {
+    await commandRoot.call(stateTransitionName, this.middlewares, updateContext);
   }
 }
