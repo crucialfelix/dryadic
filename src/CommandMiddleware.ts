@@ -1,5 +1,5 @@
-/* @flow */
-import type CommandNode from './CommandNode';
+import CommandNode from "./CommandNode";
+import { Middleware, UpdateContext } from "./types";
 
 /**
  * Executes command trees using registered middleware.
@@ -10,14 +10,13 @@ import type CommandNode from './CommandNode';
  * eg. the `run` middleware handles only the command key `run`
  */
 export default class CommandMiddleware {
+  middlewares: Middleware[];
 
-  middlewares: Array<Function>;
-
-  constructor(middlewares:Array<Function>=[]) {
+  constructor(middlewares: Middleware[] = []) {
     this.middlewares = middlewares;
   }
 
-  use(middlewares:Array<Function>) {
+  use(middlewares: Middleware[]): void {
     this.middlewares = this.middlewares.concat(middlewares);
   }
 
@@ -32,11 +31,11 @@ export default class CommandMiddleware {
    * @param {String} stateTransitionName - Each node has its context updated after success or failure as:
    *                            `{state: {[stateTransitionName]: true|false[, error: error]}}`
    *                            On failure the error will also be stored here for debugging.
-   * @param {Function} updateContext - supplied by the DryadPlayer, a function to update the context for a node.
+   * @param {UpdateContext} updateContext - supplied by the DryadPlayer, a function to update the context for a node.
    *
    * @returns {Promise} - resolves when all executed commands have resolved
    */
-  call(commandRoot:CommandNode, stateTransitionName:string, updateContext:Function) : Promise<*> {
-    return commandRoot.call(stateTransitionName, this.middlewares, updateContext);
+  async call(commandRoot: CommandNode, stateTransitionName: string, updateContext: UpdateContext): Promise<void> {
+    await commandRoot.call(stateTransitionName, this.middlewares, updateContext);
   }
 }

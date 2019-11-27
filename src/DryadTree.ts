@@ -1,15 +1,25 @@
-/* @flow */
-import assign from 'lodash/assign';
-import clone from 'lodash/clone';
-import create from 'lodash/create';
-import find from 'lodash/find';
-import isFunction from 'lodash/isFunction';
+import assign from "lodash/assign";
+import clone from "lodash/clone";
+import create from "lodash/create";
+import find from "lodash/find";
+import isFunction from "lodash/isFunction";
 
-import { invertDryadicProperties } from './Properties';
-import { mapProperties, className } from './utils';
-import CommandNode from './CommandNode';
-import type Dryad from './Dryad';
-import type DryadPlayer from './DryadPlayer';
+import { invertDryadicProperties } from "./Properties";
+import { mapProperties, className } from "./utils";
+import CommandNode from "./CommandNode";
+import Dryad from "./Dryad";
+import DryadPlayer, { GetClassFn } from "./DryadPlayer";
+import { Context, Command, Properties, HyperScript } from "./types";
+
+interface Memo {
+  seenTypes?: string[];
+  skipRequireParentOf?: Dryad;
+  skipSubgraphOf?: Dryad;
+}
+
+export type DebugState = Record<string, any>;
+
+type WalkFn = (node: TreeNode, dryad: Dryad, context: Context) => void;
 
 /**
  * Manages the tree structure, contexts for nodes,
@@ -17,20 +27,21 @@ import type DryadPlayer from './DryadPlayer';
  * call command middleware.
  */
 export default class DryadTree {
-  root: ?Dryad;
-  tree: ?TreeNode;
+  // should be able to have a null (silent) root
+  root?: Dryad;
+  tree?: TreeNode;
   dryads: { [id: string]: Dryad };
-  contexts: { [id: string]: Object };
-  getClass: Function;
-  rootContext: Object;
+  contexts: { [id: string]: Context };
+  getClass?: GetClassFn;
+  rootContext: Context;
   nodeLookUp: Map<string, TreeNode>;
 
   /**
-   * @param {Dryad} rootDryad
+   * @param {Dryad} root
    * @param {Function} getClass - lookup function
    */
-  constructor(rootDryad: ?Dryad, getClass: Function, rootContext: Object = {}) {
-    this.root = rootDryad;
+  constructor(root: Dryad, getClass?: GetClassFn, rootContext: Context = {}) {
+    this.root = root;
     this.dryads = {};
     this.contexts = {};
     this.getClass = getClass;
@@ -38,10 +49,11 @@ export default class DryadTree {
     // keep a flat lookup table
     this.nodeLookUp = new Map();
     // tree structure
-    if (this.root) {
-      this.tree = this._makeTree(this.root);
-      this.walk((node: TreeNode) => this.nodeLookUp.set(node.id, node));
-    }
+    // how can this be undefined?
+    this.tree = this._makeTree(this.root);
+    this.walk((node: TreeNode, dryad: Dryad, context: Context): void => {
+      this.nodeLookUp.set(node.id, node);
+    });
   }
 
   /**
@@ -53,18 +65,21 @@ export default class DryadTree {
    *   context
    *   memo
    *
-   * @param {Function} fn - called with (dryad, context, node)
+   * @param {Function} fn - called with (treeNode, dryad, context)
    * @param {TreeNode} node - starting node, defaults to the root
    * @param {Object} memo - for usage during recursion
    */
-  walk(fn: Function, node: ?TreeNode, memo: Object = {}): Object {
+  walk(fn: WalkFn, node?: TreeNode, memo: Memo = {}): Memo {
     if (!node) {
       node = this.tree;
     }
 
     if (node) {
-      memo = fn(node, this.dryads[node.id], this.contexts[node.id], memo);
+      // do you or don't you return memo from walk?
+      // or do you just set things on it
+      fn(node, this.dryads[node.id], this.contexts[node.id]);
       node.children.forEach((child: TreeNode) => {
+        // should not reassign it
         memo = this.walk(fn, child, memo);
       });
     }
@@ -80,24 +95,20 @@ export default class DryadTree {
    * @param {TreeNode} node - default is the root
    * @returns {CommandNode}
    */
-  collectCommands(
-    stateTransitionName: string,
-    node: TreeNode,
-    player: DryadPlayer
-  ): CommandNode {
-    let dryad = this.dryads[node.id];
-    let context = this.contexts[node.id];
+  collectCommands(stateTransitionName: string, node: TreeNode, player: DryadPlayer): CommandNode {
+    const dryad = this.dryads[node.id];
+    const context = this.contexts[node.id];
 
-    let commands: ?Object;
+    let commands: Command;
     try {
       switch (stateTransitionName) {
-        case 'prepareForAdd':
+        case "prepareForAdd":
           commands = dryad.prepareForAdd(player);
           break;
-        case 'add':
+        case "add":
           commands = dryad.add(player);
           break;
-        case 'remove':
+        case "remove":
           commands = dryad.remove(player);
           break;
         // case 'callCommands'
@@ -105,8 +116,7 @@ export default class DryadTree {
           throw new Error(`Unsupported command ${stateTransitionName}`);
       }
     } catch (error) {
-      player.log
-        .log(`Error during collectCommands "${stateTransitionName}" for node:\n`);
+      player.log.log(`Error during collectCommands "${stateTransitionName}" for node:\n`);
       player.log.log(node);
       throw error;
     }
@@ -116,9 +126,7 @@ export default class DryadTree {
       context,
       dryad.properties,
       node.id,
-      node.children.map(child =>
-        this.collectCommands(stateTransitionName, child, player)
-      )
+      node.children.map(child => this.collectCommands(stateTransitionName, child, player)),
     );
   }
 
@@ -129,23 +137,17 @@ export default class DryadTree {
    * This is for runtime execution of commands,
    * called from streams and async processes initiated during Dryad's .add()
    */
-  makeCommandTree(nodeId: string, commands: Object): Object {
-    return new CommandNode(
-      commands,
-      this.contexts[nodeId],
-      this.dryads[nodeId].properties,
-      nodeId,
-      []
-    );
+  makeCommandTree(nodeId: string, commands: Command): CommandNode {
+    return new CommandNode(commands, this.contexts[nodeId], this.dryads[nodeId].properties, nodeId, []);
   }
 
   /**
    * For any properties that are functions, call them with context to get the 'value'.
    * These converted/resolved values are passed into the commands at prepareForAdd/add etc.
    */
-  dryadProperties(nodeId: string): Object {
-    let dryad = this.dryads[nodeId];
-    let context = this.contexts[nodeId];
+  dryadProperties(nodeId: string): Properties {
+    const dryad = this.dryads[nodeId];
+    const context = this.contexts[nodeId];
     // invertDryadicProperties replaces Dryads in properties with these accessor functions
     return mapProperties(dryad.properties, (value): any => {
       return isFunction(value) ? value(context) : value;
@@ -159,11 +161,11 @@ export default class DryadTree {
    * @param {Object} update - values to assign into context
    * @returns {Object} context
    */
-  updateContext(dryadId: string, update: Object): Object {
+  updateContext(dryadId: string, update: Context): Context {
     return assign(this.contexts[dryadId], update);
   }
 
-  getContext(dryadId: string): Object {
+  getContext(dryadId: string): Context {
     return this.contexts[dryadId];
   }
 
@@ -171,7 +173,7 @@ export default class DryadTree {
    * Get a representation of current state of the tree.
    * Contains add|remove|prepared and may hold errors.
    */
-  getDebugState(): Object {
+  getDebugState(): DebugState {
     const formatState = s => {
       if (!s) {
         return s;
@@ -182,27 +184,27 @@ export default class DryadTree {
       }
 
       if (s.add) {
-        return 'running';
+        return "running";
       }
 
       if (s.remove) {
-        return 'removed';
+        return "removed";
       }
 
       if (s.prepareForAdd) {
-        return 'prepared';
+        return "prepared";
       }
 
       return `Unknown: ${JSON.stringify(s)}`;
     };
 
     const dbug = node => {
-      let context = this.contexts[node.id];
-      let state = context.hasOwnProperty('state') ? context.state : undefined;
+      const context = this.contexts[node.id];
+      const state = context.hasOwnProperty("state") ? context.state : undefined;
       let r = {
         id: node.id,
         class: this.dryads[node.id].constructor.name,
-        state: formatState(state)
+        state: formatState(state),
         // circular references, cannot print
         // context: JSON.stringify(this.contexts[node.id], null, 2)
       };
@@ -223,19 +225,18 @@ export default class DryadTree {
    * Return the current play graph as a hyperscript document.
    * Useful for testing and debugging.
    */
-  hyperscript(): ?Array<mixed> {
-    function asH(node) {
-      let dryad = node.dryad;
-      return [
+  hyperscript(): HyperScript | undefined {
+    function asH(node): HyperScript {
+      const dryad = node.dryad;
+      const h: HyperScript = [
         className(dryad),
         dryad.properties, // may contain accessor functions
-        node.children.map(asH)
+        node.children.map(asH),
       ];
+      return h;
     }
 
-    if (this.tree) {
-      return asH(this.tree);
-    }
+    return this.tree && asH(this.tree);
   }
 
   /**
@@ -246,20 +247,15 @@ export default class DryadTree {
    *
    * @returns {Object}
    */
-  _createContext(
-    dryad: Dryad,
-    dryadId: string,
-    parentId: ?string,
-    rootContext: Object = {}
-  ): Object {
-    let cc = assign({ id: dryadId }, rootContext, dryad.initialContext());
+  _createContext(dryad: Dryad, dryadId: string, parentId?: string, rootContext: Context = {}): Context {
+    const cc = assign({ id: dryadId }, rootContext, dryad.initialContext());
     if (parentId) {
-      let parent = this.dryads[parentId];
+      const parent = this.dryads[parentId];
       // In the case of a Properties at the top level, there is no existing parent although there was a parentId of '0'
       // passed in.
-      let parentContext = this.contexts[parentId];
+      const parentContext = this.contexts[parentId];
       if (parentContext) {
-        let childContext = parent.childContext(parentContext);
+        const childContext = parent.childContext(parentContext);
         return create(parentContext, assign(childContext, cc));
       }
     }
@@ -289,14 +285,9 @@ export default class DryadTree {
    * @param {Object} memo - for internal usage during recursion
    * @returns {Object}
    */
-  _makeTree(
-    dryad: Dryad,
-    parentId: ?string,
-    childIndex: number | string = 0,
-    memo: Object = {}
-  ): TreeNode {
+  _makeTree(dryad: Dryad, parentId?: string, childIndex: number | string = 0, memo: Memo = {}): TreeNode {
     if (!dryad.isDryad) {
-      throw new Error('Not a Dryad: ${dryad}');
+      throw new Error("Not a Dryad: ${dryad}");
     }
 
     // Copy seenTypes, pass it to your children
@@ -306,59 +297,52 @@ export default class DryadTree {
     if (memo.skipRequireParentOf === dryad) {
       delete memo.skipRequireParentOf;
     } else {
-      let rq = dryad.requireParent();
+      const rq = dryad.requireParent();
       if (rq) {
         if (!find(memo.seenTypes, st => st === rq)) {
           // fetch the parent class from dryadTypes registery by name
           if (!this.getClass) {
             throw new Error(
-              'A getClass lookup was not provided to DryadTree and ' +
+              "A getClass lookup was not provided to DryadTree and " +
                 dryad.constructor.name +
-                ' needs one for requireParent()'
+                " needs one for requireParent()",
             );
           }
-          let requiredParent: Dryad = new (this.getClass(rq))({}, [dryad]);
+          const requiredParent: Dryad = new (this.getClass(rq))({}, [dryad]);
           memo.skipRequireParentOf = dryad;
           return this._makeTree(requiredParent, parentId, childIndex, memo);
         }
       }
     }
 
-    let id = parentId ? parentId + '.' + childIndex : '0';
+    const id = parentId ? parentId + "." + childIndex : "0";
 
     // If any properties are Dryads then clone them into a Properties
     // dryad with this dryad as it's downstream child. This puts them
     // higher up in the play graph.
-    let propertiesDryad = invertDryadicProperties(dryad);
+    const propertiesDryad = invertDryadicProperties(dryad);
     if (propertiesDryad) {
-      return this._makeTree(
-        propertiesDryad,
-        parentId,
-        `${childIndex}.props`,
-        memo
-      );
+      return this._makeTree(propertiesDryad, parentId, `${childIndex}.props`, memo);
     }
 
-    let context = this._createContext(dryad, id, parentId, this.rootContext);
+    const context = this._createContext(dryad, id, parentId, this.rootContext);
     this.dryads[id] = dryad;
     this.contexts[id] = context;
 
-    let makeSubgraph = dr => {
-      let subgraph = dr.subgraph();
+    const makeSubgraph = (dr: Dryad): TreeNode | void => {
+      const subgraph = dr.subgraph();
       if (subgraph) {
-        let subMemo = clone(memo);
+        const subMemo = clone(memo);
         // When and if this dryad appears in its own subgraph
         // then do not call subgraph() on that. It will just
         // do prepare/add/remove on its own self.
         subMemo.skipSubgraphOf = dryad;
         // if its an array then should have been supplied in a Branch
         if (Array.isArray(subgraph)) {
-          throw new Error(
-            'Dryad subgraph should return a single Dryad with children. ${dr} ${subgraph}'
-          );
+          throw new Error("Dryad subgraph should return a single Dryad with children. ${dr} ${subgraph}");
         }
 
-        return this._makeTree(subgraph, id, 'subgraph', subMemo);
+        return this._makeTree(subgraph, id, "subgraph", subMemo);
       }
     };
 
@@ -367,19 +351,19 @@ export default class DryadTree {
         // may still be subgraph children to come
         delete memo.skipSubgraphOf;
       } else {
-        let subgraph = makeSubgraph(dryad);
+        const subgraph = makeSubgraph(dryad);
         if (subgraph) {
           return subgraph;
         }
       }
     } else {
-      let subgraph = makeSubgraph(dryad);
+      const subgraph = makeSubgraph(dryad);
       if (subgraph) {
         return subgraph;
       }
     }
 
-    let dryadType = dryad.constructor.name;
+    const dryadType = dryad.constructor.name;
     memo.seenTypes.push(dryadType);
 
     return new TreeNode(
@@ -388,7 +372,7 @@ export default class DryadTree {
       dryadType,
       dryad.children.map((child, i) => {
         return this._makeTree(child, id, i, memo);
-      })
+      }),
     );
   }
 }
@@ -397,9 +381,9 @@ class TreeNode {
   id: string;
   dryad: Dryad;
   dryadType: string;
-  children: Array<TreeNode>;
+  children: TreeNode[];
 
-  constructor(id, dryad, dryadType, children) {
+  constructor(id: string, dryad: Dryad, dryadType: string, children: TreeNode[]) {
     this.id = id;
     this.dryad = dryad;
     this.dryadType = dryadType;

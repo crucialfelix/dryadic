@@ -1,8 +1,9 @@
-/* @flow */
-import assign from 'lodash/assign';
-import clone from 'lodash/clone';
-import mapValues from 'lodash/mapValues';
-import type DryadPlayer from './DryadPlayer';
+import clone from "lodash/clone";
+import mapValues from "lodash/mapValues";
+import isPlainObject from "is-plain-object";
+
+import DryadPlayer from "./DryadPlayer";
+import { Command, Context, Properties } from "./types";
 
 /**
  * >> A dryad (/ˈdraɪ.æd/; Greek: Δρυάδες, sing.: Δρυάς) is a tree nymph, or female tree spirit, in Greek mythology
@@ -23,23 +24,37 @@ import type DryadPlayer from './DryadPlayer';
  * command middleware which is supplied by various Dryadic packages.
  */
 
-export default class Dryad {
-  properties: Object;
-  children: Array<Dryad>;
+export default class Dryad<P = Properties> {
+  properties: P;
+  children: Dryad[] = [];
 
   /**
    * Subclasses should not implement constructor.
    * All Dryad classes take properties and children.
    */
-  constructor(properties: Object = {}, children: Array<Dryad> = []) {
-    this.properties = assign({}, this.defaultProperties(), properties || {});
+  constructor(properties?: P, children?: Dryad[]) {
+    if (properties && !isPlainObject(properties)) {
+      throw new TypeError(
+        `${
+          this.constructor.name
+        } properties should be an object, but is typeof '${typeof properties}': ${JSON.stringify(properties)}`,
+      );
+    }
+    this.properties = Object.assign({}, this.defaultProperties(), properties);
     this.children = children || [];
+    if (!Array.isArray(this.children)) {
+      throw new TypeError(
+        `${this.constructor.name} children should be an Array, but is '${typeof this.children}': ${JSON.stringify(
+          this.children,
+        )}`,
+      );
+    }
   }
 
   /**
    * Defaults properties if none are supplied
    */
-  defaultProperties(): Object {
+  defaultProperties(): Partial<P> {
     return {};
   }
 
@@ -51,8 +66,7 @@ export default class Dryad {
    * will allocate resources, start up servers etc. and then save handles,
    * pids, node ids etc. into the context for use by .add()
    */
-  // eslint-disable-next-line no-unused-vars
-  prepareForAdd(player: DryadPlayer): Object {
+  prepareForAdd(player: DryadPlayer): Command {
     return {};
   }
 
@@ -67,7 +81,7 @@ export default class Dryad {
    * Command middleware for add may return Promises which resolve on success; ie. when the thing is successfully booted, running etc.
    */
   // eslint-disable-next-line no-unused-vars
-  add(player: DryadPlayer): Object {
+  add(player: DryadPlayer): Command {
     return {};
   }
 
@@ -82,7 +96,7 @@ export default class Dryad {
    * Command middleware for run may return Promises which resolve on success; ie. when the thing is successfully stopped, remove etc.
    */
   // eslint-disable-next-line no-unused-vars
-  remove(player: DryadPlayer): Object {
+  remove(player: DryadPlayer): Command {
     return {};
   }
 
@@ -96,7 +110,9 @@ export default class Dryad {
    * will be called. If subgraph is implemented but it does not include itself then
    * .add / .remove will not be called.
    */
-  subgraph(): ?Dryad {}
+  subgraph(): Dryad | null {
+    return null;
+  }
 
   /**
    * When Dryad requires a parent Dryad to be somewhere above it then it
@@ -108,14 +124,16 @@ export default class Dryad {
    *
    * @returns {String|undefined} - class name of required parent Dryad
    */
-  requireParent(): ?string {}
+  requireParent(): string | void {
+    // return null;
+  }
 
   /**
    * Initial context
    *
    * This dryad's context is also the parent object for all children.
    */
-  initialContext(): Object {
+  initialContext(): Context {
     return {};
   }
 
@@ -126,7 +144,7 @@ export default class Dryad {
    * This is for setting things that should be in the child context
    * and not in the parent context. ie. Things that shadow values in the parent.
    */
-  childContext(): Object {
+  childContext(parentContext?: Context): Context {
     return {};
   }
 
@@ -151,21 +169,35 @@ export default class Dryad {
   }
 
   /**
-   * When Dryads are used a properties for other Dryads,
+   * When Dryads are used as properties for other Dryads,
    * they should implement .value to return whatever information
    * the parent Dryad needs from them.
    */
-  value(/*context:Object*/): any {
-    throw new Error(
-      `Subclass responsibility: ${this.constructor.name} should implement 'value()'`
-    );
+  value(context: Context): any {
+    throw new Error(`Subclass responsibility: ${this.constructor.name} should implement 'value()'`);
   }
 
-  clone(): Dryad {
-    let dup = new this.constructor();
-    let cloneValue = (c: any): any => (c && c.isDryad ? c.clone() : clone(c));
-    dup.properties = mapValues(this.properties, cloneValue);
-    dup.children = this.children.map(cloneValue);
-    return dup;
+  clone(): Dryad<P> {
+    const properties: P = mapValues(this.properties as any, cloneValue);
+    const children = this.children.map(cloneValue);
+    const cl: Dryad<P> = Object.create(this, {
+      properties: { value: properties },
+      children: { value: children },
+    });
+    return cl;
   }
+}
+
+/**
+ * A Dryad class (not an instance)
+ */
+export interface DryadType<P = {}> {
+  new (properties?: P, children?: Dryad[]): Dryad<P>;
+}
+
+/**
+ * Clone a value, be it a Dryad or any normal JavaScript value
+ */
+function cloneValue(c: any): any {
+  return c && c.isDryad ? c.clone() : clone(c);
 }

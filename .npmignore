@@ -1,6 +1,10 @@
-/src
-/lib/__tests__
-.eslintrc
-.node-version
-.travis.yml
-esdoc.json
+*
+!src/**/*
+src/**/__tests__/**/*
+!lib/**/*
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE
+lib/tsconfig.tsbuildinfo
+lib/.DS_Store

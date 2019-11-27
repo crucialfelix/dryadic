@@ -1,4 +1,5 @@
-/* @flow */
+import { Command, Context, Properties, UpdateContext } from "./types";
+
 /**
  * Calls a function, supplying the Dryad's context.
  * May return a Promise for success/failure
@@ -20,8 +21,17 @@
  *   };
  *  }
  */
-export default function run(command:Object, context:Object, properties:Object) : any|Promise<*> {
+export default async function run(
+  command: Command,
+  context: Context,
+  properties: Properties,
+  updateContext: UpdateContext,
+): Promise<void> {
   if (command.run) {
-    return command.run(context, properties);
+    if (typeof command.run === "function") {
+      await command.run(context, properties, updateContext);
+    } else {
+      throw new TypeError(`${command.run} is not callable`);
+    }
   }
 }

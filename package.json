@@ -1,7 +1,7 @@
 {
   "name": "dryadic",
-  "description": "Component micro-framework for creative coding",
-  "version": "0.3.2",
+  "description": "Declarative, reactive orchestration framework for Creative Coding",
+  "version": "1.0.0",
   "author": "Chris Sattinger <crucialfelix@gmail.com>",
   "contributors": [
     {
@@ -10,61 +10,58 @@
     }
   ],
   "dependencies": {
-    "bluebird": "^3.5.0",
-    "is-plain-object": "^2.0.1",
-    "lodash": "^4.17.4"
+    "is-plain-object": "^3.0.0",
+    "lodash": "^4.17.15"
   },
   "devDependencies": {
-    "babel": "^6.23.0",
-    "babel-cli": "^6.24.1",
-    "babel-eslint": "^7.2.3",
-    "babel-jest": "^19.0.0",
-    "babel-plugin-transform-class-properties": "^6.24.1",
-    "babel-plugin-transform-flow-strip-types": "^6.22.0",
-    "babel-preset-es2015": "^6.24.1",
-    "eslint": "^3.19.0",
-    "eslint-plugin-flowtype": "^2.32.1",
-    "jest-cli": "^19.0.2"
+    "@babel/preset-env": "7.7.1",
+    "@types/jest": "24.0.23",
+    "@types/lodash": "4.14.149",
+    "@typescript-eslint/eslint-plugin": "2.8.0",
+    "@typescript-eslint/parser": "2.8.0",
+    "eslint": "6.6.0",
+    "eslint-config-prettier": "6.7.0",
+    "eslint-plugin-prettier": "3.1.1",
+    "jest": "^24.9.0",
+    "prettier": "1.19.1",
+    "ts-jest": "24.1.0",
+    "typescript": "3.7.2"
   },
   "license": "MIT",
-  "keywords": [],
+  "keywords": [
+    "creative coding",
+    "supercollider",
+    "typescript"
+  ],
   "repository": {
     "type": "git",
     "url": "git://github.com/crucialfelix/dryadic"
   },
-  "main": "index",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "directories": {
+    "lib": "lib"
+  },
   "scripts": {
     "test": "jest && npm run lint",
-    "lint": "eslint -c .eslintrc src",
+    "lint": "eslint --ext .ts src",
     "jest": "npm run build && jest --watch",
-    "compile": "babel --source-maps --out-dir=./lib src",
-    "watch": "babel --watch --source-maps --out-dir=./lib src",
-    "docs": "esdoc -c esdoc.json",
-    "build": "npm run compile",
-    "prepublish": "npm run build",
-    "postinstall": "node -e \"require('fs').stat('lib', function (e, s) { process.exit(e || !s.isDirectory() ? 1 : 0) })\" || npm run build"
+    "watch": "tsc -b src",
+    "build": "tsc -b src"
+  },
+  "eslintIgnore": [
+    "node_modules",
+    "lib"
+  ],
+  "engines": {
+    "node": ">= 10.0.0"
   },
   "jest": {
-    "transform": {
-      ".*": "<rootDir>/node_modules/babel-jest"
-    },
-    "testRegex": "(/__tests__/[a-zA-Z].*|\\.(test|spec))\\.(js|json)$",
-    "roots": [
-      "src"
-    ],
-    "moduleFileExtensions": [
-      "js",
-      "json"
-    ],
-    "collectCoverage": true,
-    "coveragePathIgnorePatterns": [
-      "/lib/"
-    ]
-  },
-  "jshintConfig": {
-    "esnext": true
-  },
-  "engines": {
-    "node": ">=4"
+    "preset": "ts-jest",
+    "globals": {
+      "ts-jest": {
+        "tsConfig": "<rootDir>/src/tsconfig.json"
+      }
+    }
   }
 }
