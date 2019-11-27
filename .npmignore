@@ -6,3 +6,5 @@ src/**/__tests__/**/*
 !README.md
 !CHANGELOG.md
 !LICENSE
+lib/tsconfig.tsbuildinfo
+lib/.DS_Store

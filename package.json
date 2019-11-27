@@ -28,7 +28,11 @@
     "typescript": "3.7.2"
   },
   "license": "MIT",
-  "keywords": [],
+  "keywords": [
+    "creative coding",
+    "supercollider",
+    "typescript"
+  ],
   "repository": {
     "type": "git",
     "url": "git://github.com/crucialfelix/dryadic"
